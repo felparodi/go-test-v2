@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Juego WebSocket</title>
+    <style>
+        canvas {
+            border: 2px solid black;
+            display: block;
+            margin: 20px auto;
+        }
+        #info {
+            text-align: center;
+            font-family: Arial;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Juego Multiplayer</h2>
+        <p>Controles: WASD o Flechas</p>
+        <div id="score">Puntuación: 0</div>
+    </div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+
+        // Conectar WebSocket
+        const ws = new WebSocket('ws://localhost:8080/ws');
+
+        let gameState = {
+            players: {},
+            items: []
+        };
+
+        let playerId = 'player_' + Math.random().toString(36).substr(2, 9);
+
+        ws.onopen = () => {
+            console.log('Conectado al servidor');
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                gameState = data;
+                drawGame();
+                updateScore();
+            } catch (e) {
+                console.error('Error al procesar mensaje:', e);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('Desconectado del servidor');
+        };
+
+        // Dibujar el juego
+        function drawGame() {
+            ctx.clearRect(0, 0, 800, 600);
+
+            // Dibujar items
+            gameState.items.forEach(item => {
+                ctx.beginPath();
+                ctx.arc(item.X, item.Y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = '#4CAF50';
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            // Dibujar jugadores
+            Object.entries(gameState.players).forEach(([id, player]) => {
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+                ctx.fillStyle = id === playerId ? '#2196F3' : '#FF5722';
+                ctx.fill();
+                ctx.stroke();
+
+                // Mostrar nombre
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(id.substring(0, 8), player.x, player.y - 25);
+                ctx.fillText('Score: ' + player.score, player.x, player.y + 30);
+            });
+        }
+
+        function updateScore() {
+            if (gameState.players[playerId]) {
+                scoreDisplay.textContent = 'Puntuación: ' + gameState.players[playerId].score;
+            }
+        }
+
+        // Controles
+        const keys = {
+            w: false, a: false, s: false, d: false,
+            ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = true;
+                sendMovement();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = false;
+                sendMovement();
+            }
+        });
+
+        function sendMovement() {
+            let velocityX = 0, velocityY = 0;
+            
+            if (keys.a || keys.ArrowLeft) velocityX = -150;
+            if (keys.d || keys.ArrowRight) velocityX = 150;
+            if (keys.w || keys.ArrowUp) velocityY = -150;
+            if (keys.s || keys.ArrowDown) velocityY = 150;
+
+            ws.send(JSON.stringify({
+                type: 'move',
+                payload: { velocityX, velocityY }
+            }));
+        }
+    </script>
+</body>
+</html>
