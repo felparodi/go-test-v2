@@ -5,6 +5,7 @@ class Renderer {
         this.ctx = this.canvas.getContext('2d');
         this.width = CONFIG.WORLD_WIDTH;
         this.height = CONFIG.WORLD_HEIGHT;
+        this.debugMode = CONFIG.DEBUG_MODE;
     }
     
     clear() {
@@ -35,7 +36,6 @@ class Renderer {
         const x = item.X;
         const y = item.Y;
         
-        // Efecto de brillo
         const gradient = ctx.createRadialGradient(x, y, 2, x, y, 18);
         gradient.addColorStop(0, '#4CAF50');
         gradient.addColorStop(0.5, '#66BB6A');
@@ -45,7 +45,6 @@ class Renderer {
         ctx.arc(x, y, 18, 0, Math.PI * 2);
         ctx.fill();
         
-        // Estrella
         ctx.shadowBlur = 15;
         ctx.shadowColor = 'rgba(76, 175, 80, 0.5)';
         ctx.beginPath();
@@ -81,15 +80,15 @@ class Renderer {
         ctx.lineWidth = 0.5;
         ctx.stroke();
         
-        // Pupila
-        const pupilOffsetX = radius * 0.3;
-        const pupilOffsetY = -radius * 0.2;
+        // Pupila - mirando hacia adelante
+        const pupilOffsetX = radius * 0.4;
+        const pupilOffsetY = -radius * 0.3;
         ctx.beginPath();
         ctx.arc(x + pupilOffsetX, y + pupilOffsetY, pupilRadius, 0, Math.PI * 2);
         ctx.fillStyle = color || '#2C3E50';
         ctx.fill();
         
-        // Brillo
+        // Brillo en la pupila
         ctx.beginPath();
         ctx.arc(
             x + pupilOffsetX + pupilRadius * 0.3,
@@ -108,19 +107,81 @@ class Renderer {
         const x = player.x;
         const y = player.y;
         
-        // Calcular ángulo
+        // --- CALCULAR ÁNGULO DE DIRECCIÓN ---
         let angle = 0;
-        if (player.vx !== undefined && player.vy !== undefined) {
-            if (Math.abs(player.vx) > 0.5 || Math.abs(player.vy) > 0.5) {
-                angle = Math.atan2(player.vy, player.vx);
+        let isMoving = false;
+        let {vx, vy} = player;
+        vx = vx ? vx : 0;
+        vy = vy ? vy : 0;
+        if (vx !== undefined && vy !== undefined) {
+            const speed = Math.sqrt(vx * vx + vy * vy);
+            
+            if (speed > 5) { // Umbral de movimiento
+                isMoving = true;
+                // Calcular ángulo en radianes
+                angle = Math.atan2(vy, vx);
+                // Guardar la última dirección
                 player.lastAngle = angle;
             } else {
+                // Usar la última dirección guardada
                 angle = player.lastAngle || 0;
             }
         }
         
+        // --- DIBUJAR LÍNEA DE DIRECCIÓN (DEBUG) ---
+        if (this.debugMode && isLocal) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 4]);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            const dirLength = 60;
+            const endX = x + Math.cos(angle) * dirLength;
+            const endY = y + Math.sin(angle) * dirLength;
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Flecha en la punta
+            const arrowSize = 10;
+            const arrowAngle = 0.5;
+            const endX2 = x + Math.cos(angle) * (dirLength - 5);
+            const endY2 = y + Math.sin(angle) * (dirLength - 5);
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX2 - Math.cos(angle - arrowAngle) * arrowSize,
+                endY2 - Math.sin(angle - arrowAngle) * arrowSize
+            );
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX2 - Math.cos(angle + arrowAngle) * arrowSize,
+                endY2 - Math.sin(angle + arrowAngle) * arrowSize
+            );
+            ctx.stroke();
+            
+            // Mostrar ángulo
+            ctx.setLineDash([]);
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.8)';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'left';
+            const angleDeg = (angle * 180 / Math.PI).toFixed(0);
+            ctx.fillText(`Ángulo: ${angleDeg}°`, x + 10, y - 20);
+            ctx.fillText(`vx: ${vx.toFixed(0)}`, x + 10, y - 5);
+            ctx.fillText(`vy: ${vy.toFixed(0)}`, x + 10, y + 10);
+            
+            ctx.restore();
+        }
+        
+        // --- DIBUJAR EL TRIÁNGULO ---
         ctx.save();
         ctx.translate(x, y);
+        
+        // Aplicar rotación
+        // El triángulo base apunta hacia ARRIBA (ángulo 0 = arriba)
+        // En canvas, el ángulo 0 apunta a la DERECHA
+        // Rotamos para que la punta del triángulo apunte en la dirección del movimiento
         ctx.rotate(angle);
         
         // Sombra
@@ -129,54 +190,68 @@ class Renderer {
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
         
-        // Triángulo
+        // --- DIBUJAR TRIÁNGULO (apuntando hacia la DERECHA) ---
+        // Cambiamos el triángulo para que apunte a la DERECHA por defecto
+        // Esto hace que la rotación sea más intuitiva con atan2
         ctx.beginPath();
-        ctx.moveTo(0, -size);
-        ctx.lineTo(-size * 0.8, size * 0.7);
-        ctx.lineTo(size * 0.8, size * 0.7);
+        ctx.moveTo(size, 0);              // Punta (derecha)
+        ctx.lineTo(-size * 0.6, -size * 0.7); // Superior izquierda
+        ctx.lineTo(-size * 0.6, size * 0.7);  // Inferior izquierda
         ctx.closePath();
         
-        const gradient = ctx.createLinearGradient(0, -size, 0, size);
+        // Gradiente de color
+        const gradient = ctx.createLinearGradient(-size, 0, size, 0);
         if (isLocal) {
-            gradient.addColorStop(0, '#64B5F6');
+            gradient.addColorStop(0, '#0D47A1');
             gradient.addColorStop(0.5, '#1E88E5');
-            gradient.addColorStop(1, '#0D47A1');
+            gradient.addColorStop(1, '#64B5F6');
         } else {
-            gradient.addColorStop(0, '#FF8A65');
+            gradient.addColorStop(0, '#BF360C');
             gradient.addColorStop(0.5, '#F4511E');
-            gradient.addColorStop(1, '#BF360C');
+            gradient.addColorStop(1, '#FF8A65');
         }
         
         ctx.fillStyle = gradient;
         ctx.fill();
         
+        // Borde
         ctx.shadowBlur = 0;
         ctx.strokeStyle = isLocal ? '#1565C0' : '#4A148C';
         ctx.lineWidth = 2;
         ctx.stroke();
         
-        // Ojos
+        // --- DIBUJAR OJOS EN LA PUNTA ---
+        // Los ojos se colocan cerca de la punta (lado derecho)
         const eyeOffsetX = size * 0.3;
-        const eyeOffsetY = -size * 0.1;
+        const eyeOffsetY = size * 0.2;
         const eyeRadius = size * CONFIG.EYE_RADIUS_RATIO;
         const pupilRadius = eyeRadius * CONFIG.PUPIL_RADIUS_RATIO;
         const eyeColor = isLocal ? '#1A237E' : '#4A148C';
         
-        this.drawEye(ctx, -eyeOffsetX, eyeOffsetY, eyeRadius, pupilRadius, eyeColor);
+        // Ojo superior
+        this.drawEye(ctx, eyeOffsetX, -eyeOffsetY, eyeRadius, pupilRadius, eyeColor);
+        
+        // Ojo inferior
         this.drawEye(ctx, eyeOffsetX, eyeOffsetY, eyeRadius, pupilRadius, eyeColor);
         
         ctx.restore();
         
-        // Nombre y puntuación
+        // --- NOMBRE Y PUNTUACIÓN ---
         ctx.save();
         ctx.shadowBlur = 0;
+        
+        // Nombre del jugador (arriba)
         ctx.fillStyle = 'white';
         ctx.font = 'bold 11px "Segoe UI", Arial, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('👤 ' + playerId.substring(0, 8), x, y - size - 18);
+        const displayName = playerId.substring(0, 8);
+        ctx.fillText('👤 ' + displayName, x, y - size - 18);
+        
+        // Puntuación (abajo)
         ctx.fillStyle = '#FFD54F';
         ctx.font = '11px "Segoe UI", Arial, sans-serif';
-        ctx.fillText('⭐ ' + (player.score || 0), x, y + size + 22);
+        ctx.fillText('⭐ ' + (player.score || 0), x, y + size + 28);
+        
         ctx.restore();
     }
     
@@ -185,12 +260,16 @@ class Renderer {
         this.drawGrid();
         
         // Dibujar items
-        gameState.items.forEach(item => this.drawItem(item));
+        if (gameState.items) {
+            gameState.items.forEach(item => this.drawItem(item));
+        }
         
         // Dibujar jugadores
-        Object.entries(gameState.players).forEach(([id, player]) => {
-            const isLocal = id === playerId;
-            this.drawPlayer(player, id, isLocal);
-        });
+        if (gameState.players) {
+            Object.entries(gameState.players).forEach(([id, player]) => {
+                const isLocal = id === playerId;
+                this.drawPlayer(player, id, isLocal);
+            });
+        }
     }
 }

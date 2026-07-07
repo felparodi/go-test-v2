@@ -1,4 +1,3 @@
-// static/js/game.js
 class Game {
     constructor() {
         this.playerId = Utils.generateId();
@@ -60,7 +59,12 @@ class Game {
         if (now - this.lastMoveSend < CONFIG.MOVE_SEND_INTERVAL) return;
         
         const velocity = this.input.getVelocity(CONFIG.BASE_SPEED);
-        this.network.sendMove(velocity.vx, velocity.vy);
+        
+        // Asegurar que enviamos valores numéricos
+        const vx = velocity.vx || 0;
+        const vy = velocity.vy || 0;
+        
+        this.network.sendMove(vx, vy);
         this.lastMoveSend = now;
     }
     

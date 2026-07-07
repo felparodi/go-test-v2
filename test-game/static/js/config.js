@@ -8,7 +8,7 @@ const CONFIG = {
     WORLD_HEIGHT: 600,
     BASE_SPEED: 200,
     MAX_SPEED: 250,
-    MOVE_SEND_INTERVAL: 50, // ms
+    MOVE_SEND_INTERVAL: 50,
     
     // Jugador
     PLAYER_SIZE_LOCAL: 25,
@@ -18,7 +18,7 @@ const CONFIG = {
     
     // FPS
     TARGET_FPS: 60,
-    UPDATE_INTERVAL: 1000, // ms para actualizar FPS
+    UPDATE_INTERVAL: 1000,
     
     // Items
     ITEMS_COUNT: 20,
@@ -26,4 +26,7 @@ const CONFIG = {
     ITEM_SPIKES: 6,
     ITEM_OUTER_RADIUS: 10,
     ITEM_INNER_RADIUS: 4,
+    
+    // Debug - Muestra líneas de dirección y ángulos
+    DEBUG_MODE: true  // Cambiar a false para desactivar
 };
