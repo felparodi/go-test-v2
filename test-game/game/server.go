@@ -40,11 +40,12 @@ type GameState struct {
 }
 
 type PlayerData struct {
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
-	Score int     `json:"score"`
-	Vx    float64 `json:"vx,omitempty"` // Velocidad en X
-	Vy    float64 `json:"vy,omitempty"` // Velocidad en Y
+	X         float64 `json:"x"`
+	Y         float64 `json:"y"`
+	Score     int     `json:"score"`
+	Vx        float64 `json:"vx,omitempty"`
+	Vy        float64 `json:"vy,omitempty"`
+	LastAngle float64 `json:"lastAngle,omitempty"` // Nueva: última dirección
 }
 
 func NewServer() *Server {
@@ -59,7 +60,7 @@ func NewServer() *Server {
 			WriteBufferSize: 1024,
 		},
 		gameLoopDone:  make(chan bool),
-		broadcastChan: make(chan []byte, 100), // Buffer para broadcasts
+		broadcastChan: make(chan []byte, 100),
 		rateLimiter:   make(map[string]*RateLimiter),
 	}
 }
@@ -73,7 +74,6 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// Obtener ID del jugador
 	playerID := r.URL.Query().Get("id")
 	if playerID == "" {
 		playerID = conn.RemoteAddr().String()
@@ -88,18 +88,13 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	s.world.mu.Unlock()
 	s.mu.Unlock()
 
-	// Inicializar rate limiter
 	s.rateLimiter[playerID] = &RateLimiter{}
 
 	log.Printf("Jugador %s conectado", playerID)
 
-	// Enviar estado inicial
 	s.sendGameState(player)
-
-	// Bucle de lectura de mensajes
 	go s.readMessages(player)
 
-	// Mantener conexión abierta
 	<-s.gameLoopDone
 }
 
@@ -114,7 +109,6 @@ func (s *Server) readMessages(player *Player) {
 			return
 		}
 
-		// Rate limiting
 		if !s.checkRateLimit(player.ID) {
 			log.Printf("Rate limit excedido para %s", player.ID)
 			continue
@@ -141,7 +135,7 @@ func (s *Server) checkRateLimit(playerID string) bool {
 	}
 
 	rl.count++
-	return rl.count <= 60 // Máximo 60 mensajes por segundo
+	return rl.count <= 60
 }
 
 // Manejar mensajes mejorado
@@ -150,7 +144,6 @@ func (s *Server) handleMessage(player *Player, msg Message) {
 	case "init":
 		data := msg.Payload.(map[string]interface{})
 		if id, ok := data["playerId"].(string); ok && id != player.ID {
-			// Actualizar ID del jugador
 			s.mu.Lock()
 			delete(s.players, player.ID)
 			s.world.mu.Lock()
@@ -169,7 +162,7 @@ func (s *Server) handleMessage(player *Player, msg Message) {
 		velocityX := data["velocityX"].(float64)
 		velocityY := data["velocityY"].(float64)
 
-		// Limitar velocidad máxima (incluyendo diagonal)
+		// Limitar velocidad máxima
 		maxSpeed := 250.0
 		speed := math.Sqrt(velocityX*velocityX + velocityY*velocityY)
 		if speed > maxSpeed {
@@ -178,7 +171,11 @@ func (s *Server) handleMessage(player *Player, msg Message) {
 			velocityY *= scale
 		}
 
-		// Aplicar suavizado (interpolación) para movimientos más suaves
+		// Guardar última dirección si hay movimiento
+		if math.Abs(velocityX) > 0.1 || math.Abs(velocityY) > 0.1 {
+			player.LastAngle = math.Atan2(velocityY, velocityX)
+		}
+
 		player.VelocityX = velocityX
 		player.VelocityY = velocityY
 
@@ -203,7 +200,6 @@ func (s *Server) sendGameStateToAll() {
 		return
 	}
 
-	// Enviar a todos los jugadores en paralelo
 	var wg sync.WaitGroup
 	for _, player := range s.players {
 		wg.Add(1)
@@ -220,12 +216,10 @@ func (s *Server) sendGameStateToAll() {
 
 // Bucle principal del juego optimizado
 func (s *Server) GameLoop() {
-	// Tick rate fijo para consistencia
-	ticker := time.NewTicker(16 * time.Millisecond) // ~60 FPS
+	ticker := time.NewTicker(16 * time.Millisecond)
 	defer ticker.Stop()
 
-	// Tick rate para actualizaciones de física
-	physicsTicker := time.NewTicker(10 * time.Millisecond) // 100 FPS para física
+	physicsTicker := time.NewTicker(10 * time.Millisecond)
 	defer physicsTicker.Stop()
 
 	lastTime := time.Now()
@@ -238,7 +232,6 @@ func (s *Server) GameLoop() {
 			return
 
 		case <-physicsTicker.C:
-			// Actualizar física con paso fijo
 			s.world.Update(fixedDeltaTime)
 
 		case <-ticker.C:
@@ -246,10 +239,8 @@ func (s *Server) GameLoop() {
 			deltaTime := now.Sub(lastTime).Seconds()
 			lastTime = now
 
-			// Acumular tiempo para actualizaciones de red
 			accumulator += deltaTime
 			if accumulator >= fixedDeltaTime {
-				// Enviar estado a todos los jugadores
 				s.sendGameStateToAll()
 				accumulator = 0
 			}
@@ -265,11 +256,12 @@ func (s *Server) getGameState() GameState {
 	playersData := make(map[string]PlayerData)
 	for id, player := range s.world.Players {
 		playersData[id] = PlayerData{
-			X:     player.X,
-			Y:     player.Y,
-			Score: player.Score,
-			Vx:    player.VelocityX,
-			Vy:    player.VelocityY,
+			X:         player.X,
+			Y:         player.Y,
+			Score:     player.Score,
+			Vx:        player.VelocityX,
+			Vy:        player.VelocityY,
+			LastAngle: player.LastAngle,
 		}
 	}
 

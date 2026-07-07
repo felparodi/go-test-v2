@@ -1,313 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Juego WebSocket - Movimiento Diagonal</title>
-    <style>
-        canvas {
-            border: 2px solid black;
-            display: block;
-            margin: 20px auto;
-            background: #1a1a2e;
-        }
-        #info {
-            text-align: center;
-            font-family: Arial;
-            color: white;
-        }
-        #controls-info {
-            background: #16213e;
-            padding: 10px;
-            border-radius: 8px;
-            display: inline-block;
-            margin: 10px;
-        }
-        body {
-            background: #0f0f1a;
-            margin: 0;
-            padding: 20px;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego WebSocket - Triángulos con Ojos</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div id="info">
-        <h2>🎮 Juego Multiplayer con Movimiento Diagonal</h2>
-        <div id="controls-info">
-            <p>⬆️⬇️⬅️➡️ Movimiento | 🔄 Movimiento Diagonal Suave</p>
-            <p>🟦 Tú | 🟥 Otros Jugadores</p>
+    <div id="gameContainer">
+        <div id="info">
+            <h2>🎮 Triángulos con <span>Ojos</span></h2>
+            
+            <div id="controls-info">
+                <p>
+                    <span class="highlight-blue">⬆️⬇️⬅️➡️</span> Movimiento | 
+                    <span class="highlight-orange">🔄</span> El triángulo apunta hacia donde te mueves
+                </p>
+                <p>
+                    <span class="highlight-blue">🔵 Tú</span> | 
+                    <span class="highlight-orange">🔴 Otros Jugadores</span>
+                </p>
+                <p style="font-size: 12px; margin-top: 5px; color: #888;">
+                    Usa <span class="key-hint">W</span><span class="key-hint">A</span><span class="key-hint">S</span><span class="key-hint">D</span> 
+                    o <span class="key-hint">↑</span><span class="key-hint">↓</span><span class="key-hint">←</span><span class="key-hint">→</span>
+                </p>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">🏆 <span id="score">0</span></div>
+                <div class="stat-box">⚡ <span id="fps">0</span> FPS</div>
+                <div class="stat-box">👥 <span id="players">1</span> jugadores</div>
+            </div>
+            
+            <div id="connectionStatus" class="status-connecting">🟡 Conectando...</div>
         </div>
-        <div id="score">Puntuación: 0</div>
-        <div id="fps">FPS: 0</div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
     </div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score');
-        const fpsDisplay = document.getElementById('fps');
-
-        // Conectar WebSocket
-        const ws = new WebSocket('ws://localhost:8080/ws');
-
-        let gameState = {
-            players: {},
-            items: []
-        };
-
-        let playerId = 'player_' + Math.random().toString(36).substr(2, 9);
-        let fps = 0;
-        let frameCount = 0;
-        let lastFpsUpdate = Date.now();
-
-        // Sistema de movimiento mejorado
-        const input = {
-            keys: new Set(),
-            // Normalización de vector para movimiento diagonal suave
-            getDirection() {
-                let x = 0, y = 0;
-                
-                if (this.keys.has('ArrowLeft') || this.keys.has('a') || this.keys.has('A')) x -= 1;
-                if (this.keys.has('ArrowRight') || this.keys.has('d') || this.keys.has('D')) x += 1;
-                if (this.keys.has('ArrowUp') || this.keys.has('w') || this.keys.has('W')) y -= 1;
-                if (this.keys.has('ArrowDown') || this.keys.has('s') || this.keys.has('S')) y += 1;
-
-                // Normalizar para velocidad constante en diagonal
-                const length = Math.sqrt(x*x + y*y);
-                if (length > 0) {
-                    x = x / length;
-                    y = y / length;
-                }
-
-                return { x, y };
-            }
-        };
-
-        ws.onopen = () => {
-            console.log('✅ Conectado al servidor');
-            // Enviar ID del jugador
-            ws.send(JSON.stringify({
-                type: 'init',
-                payload: { playerId }
-            }));
-        };
-
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                gameState = data;
-                drawGame();
-                updateScore();
-                updateFPS();
-            } catch (e) {
-                console.error('Error al procesar mensaje:', e);
-            }
-        };
-
-        ws.onclose = () => {
-            console.log('❌ Desconectado del servidor');
-        };
-
-        // Dibujar el juego con mejoras visuales
-        function drawGame() {
-            ctx.clearRect(0, 0, 800, 600);
-
-            // Dibujar grid (opcional)
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-            ctx.lineWidth = 1;
-            for (let x = 0; x < 800; x += 50) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, 600);
-                ctx.stroke();
-            }
-            for (let y = 0; y < 600; y += 50) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(800, y);
-                ctx.stroke();
-            }
-
-            // Dibujar items con animación
-            gameState.items.forEach(item => {
-                // Efecto de brillo
-                const gradient = ctx.createRadialGradient(item.X, item.Y, 2, item.X, item.Y, 15);
-                gradient.addColorStop(0, '#4CAF50');
-                gradient.addColorStop(1, 'rgba(76, 175, 80, 0)');
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(item.X, item.Y, 15, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.arc(item.X, item.Y, 8, 0, Math.PI * 2);
-                ctx.fillStyle = '#66BB6A';
-                ctx.fill();
-                ctx.strokeStyle = '#2E7D32';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            });
-
-            // Dibujar jugadores con sombras y efectos
-            Object.entries(gameState.players).forEach(([id, player]) => {
-                const isLocal = id === playerId;
-                
-                // Sombra
-                ctx.shadowColor = isLocal ? 'rgba(33, 150, 243, 0.3)' : 'rgba(255, 87, 34, 0.3)';
-                ctx.shadowBlur = 20;
-
-                // Cuerpo del jugador
-                ctx.beginPath();
-                ctx.arc(player.x, player.y, 18, 0, Math.PI * 2);
-                
-                // Degradado para mejor visualización
-                const gradient = ctx.createRadialGradient(
-                    player.x - 5, player.y - 5, 2,
-                    player.x, player.y, 18
-                );
-                
-                if (isLocal) {
-                    gradient.addColorStop(0, '#64B5F6');
-                    gradient.addColorStop(1, '#1565C0');
-                } else {
-                    gradient.addColorStop(0, '#FF8A65');
-                    gradient.addColorStop(1, '#BF360C');
-                }
-                
-                ctx.fillStyle = gradient;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.strokeStyle = isLocal ? '#0D47A1' : '#4A148C';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-
-                // Indicador de dirección (triángulo)
-                if (player.vx !== undefined && player.vy !== undefined) {
-                    const angle = Math.atan2(player.vy, player.vx);
-                    const arrowLength = 25;
-                    ctx.beginPath();
-                    ctx.moveTo(
-                        player.x + Math.cos(angle) * 20,
-                        player.y + Math.sin(angle) * 20
-                    );
-                    ctx.lineTo(
-                        player.x + Math.cos(angle + 0.5) * arrowLength,
-                        player.y + Math.sin(angle + 0.5) * arrowLength
-                    );
-                    ctx.lineTo(
-                        player.x + Math.cos(angle - 0.5) * arrowLength,
-                        player.y + Math.sin(angle - 0.5) * arrowLength
-                    );
-                    ctx.closePath();
-                    ctx.fillStyle = isLocal ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.3)';
-                    ctx.fill();
-                }
-
-                // Nombre y puntuación
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(id.substring(0, 8), player.x, player.y - 28);
-                ctx.font = '11px Arial';
-                ctx.fillStyle = '#FFD700';
-                ctx.fillText('⭐ ' + player.score, player.x, player.y + 35);
-            });
-
-            // Resetear sombra
-            ctx.shadowBlur = 0;
-        }
-
-        function updateScore() {
-            if (gameState.players[playerId]) {
-                scoreDisplay.textContent = '🏆 Puntuación: ' + gameState.players[playerId].score;
-            }
-        }
-
-        function updateFPS() {
-            frameCount++;
-            const now = Date.now();
-            if (now - lastFpsUpdate >= 1000) {
-                fps = frameCount;
-                frameCount = 0;
-                lastFpsUpdate = now;
-                fpsDisplay.textContent = '⚡ FPS: ' + fps;
-            }
-        }
-
-        // Sistema de envío de movimiento optimizado
-        let lastMoveSend = 0;
-        const MOVE_SEND_INTERVAL = 50; // ms
-
-        function sendMovement() {
-            const now = Date.now();
-            if (now - lastMoveSend < MOVE_SEND_INTERVAL) return;
-            
-            const dir = input.getDirection();
-            
-            // Velocidad base
-            const BASE_SPEED = 200; // píxeles por segundo
-            
-            ws.send(JSON.stringify({
-                type: 'move',
-                payload: {
-                    velocityX: dir.x * BASE_SPEED,
-                    velocityY: dir.y * BASE_SPEED
-                }
-            }));
-            
-            lastMoveSend = now;
-        }
-
-        // Mejor manejo de eventos de teclado
-        document.addEventListener('keydown', (e) => {
-            const key = e.key;
-            // Evitar scroll con teclas de dirección
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) {
-                e.preventDefault();
-            }
-            
-            if (!input.keys.has(key)) {
-                input.keys.add(key);
-                sendMovement();
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            const key = e.key;
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) {
-                e.preventDefault();
-            }
-            
-            input.keys.delete(key);
-            sendMovement();
-        });
-
-        // Enviar movimiento periódicamente incluso sin cambios (para mantener sincronización)
-        setInterval(() => {
-            if (input.keys.size > 0) {
-                sendMovement();
-            }
-        }, 100);
-
-        // También envíar movimiento cuando se pierde el foco
-        document.addEventListener('blur', () => {
-            input.keys.clear();
-            ws.send(JSON.stringify({
-                type: 'move',
-                payload: { velocityX: 0, velocityY: 0 }
-            }));
-        });
-
-        // Sistema de predicción de movimiento local (opcional)
-        // Para reducir la latencia percibida
-        let localPlayer = null;
-        setInterval(() => {
-            if (gameState.players[playerId]) {
-                localPlayer = gameState.players[playerId];
-            }
-        }, 50);
-
-        console.log('🎮 Juego iniciado - Movimiento diagonal suave activado');
-    </script>
+    <!-- JavaScript - Orden de carga importante -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/network.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
