@@ -1,5 +1,5 @@
 // static/js/network.js
-class NetworkManager {
+export default class NetworkManager {
     constructor(url) {
         this.url = url;
         this.ws = null;

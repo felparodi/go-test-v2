@@ -1,4 +1,9 @@
-class Game {
+import Utils from './utils.js';
+import InputManager from './input.js';
+import CONFIG from './config.js'
+import Renderer from './renderer.js'
+import NetworkManager from './network.js'
+export default class Game {
     constructor() {
         this.playerId = Utils.generateId();
         this.gameState = {

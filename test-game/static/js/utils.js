@@ -1,5 +1,5 @@
 // static/js/utils.js
-class Utils {
+export default class Utils {
     // Generar ID único
     static generateId() {
         return 'player_' + Math.random().toString(36).substr(2, 9);

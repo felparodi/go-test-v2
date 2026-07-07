@@ -1,5 +1,5 @@
 // static/js/config.js
-const CONFIG = {
+export default {
     // Servidor
     WS_URL: 'ws://localhost:8080/ws',
     

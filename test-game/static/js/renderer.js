@@ -1,5 +1,6 @@
-// static/js/renderer.js
-class Renderer {
+import CONFIG from './config.js';
+import PlayerRender from './renders/playerRender.js';
+export default class Renderer {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');

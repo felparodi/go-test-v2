@@ -1,5 +1,6 @@
 // static/js/input.js
-class InputManager {
+import Utils from "./utils.js";
+export default class InputManager {
     constructor() {
         this.keys = new Set();
         this.moveCallbacks = [];

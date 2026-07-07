@@ -1,3 +1,6 @@
+import Game from './game.js';
+import Utils from './utils.js';
+import CONFIG from './config.js';
 // static/js/main.js
 // Punto de entrada principal
 document.addEventListener('DOMContentLoaded', () => {
