@@ -2,6 +2,8 @@ package game
 
 import (
 	"sync"
+	"math"
+	"math/rand"
 )
 
 // Zona de juego con coordenadas
@@ -50,13 +52,30 @@ func (w *World) Update(deltaTime float64) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	// Actualizar cada jugador
+	// Factor de fricción para movimiento más natural
+	const friction = 0.92
+
 	for _, player := range w.Players {
-		// Movimiento con inercia
+		// Aplicar fricción gradual
+		if player.VelocityX != 0 || player.VelocityY != 0 {
+			// Reducir velocidad gradualmente cuando no hay input
+			player.VelocityX *= friction
+			player.VelocityY *= friction
+
+			// Si la velocidad es muy pequeña, detener
+			if math.Abs(player.VelocityX) < 0.1 {
+				player.VelocityX = 0
+			}
+			if math.Abs(player.VelocityY) < 0.1 {
+				player.VelocityY = 0
+			}
+		}
+
+		// Mover con deltaTime para consistencia de velocidad
 		player.X += player.VelocityX * deltaTime
 		player.Y += player.VelocityY * deltaTime
 
-		// Colisiones con bordes
+		// Colisiones con bordes mejoradas
 		if player.X < 0 {
 			player.X = 0
 			player.VelocityX = 0
@@ -74,15 +93,26 @@ func (w *World) Update(deltaTime float64) {
 			player.VelocityY = 0
 		}
 
-		// Recolectar items cercanos
+		// Recolectar items con mejor detección
 		for i := len(w.items) - 1; i >= 0; i-- {
 			item := w.items[i]
 			dx := player.X - item.X
 			dy := player.Y - item.Y
-			if dx*dx+dy*dy < 2500 { // Radio de 50 unidades
+			distance := math.Sqrt(dx*dx + dy*dy)
+			
+			if distance < 30 { // Radio de colección
 				player.Score += item.Value
-				// Remover el item
 				w.items = append(w.items[:i], w.items[i+1:]...)
+				
+				// Regenerar item en nueva posición
+				newItem := Item{
+					ID:    "item_" + string(rune(i)),
+					X:     float64(rand.Intn(w.Width)),
+					Y:     float64(rand.Intn(w.Height)),
+					Type:  "recurso",
+					Value: 10 + rand.Intn(20),
+				}
+				w.items = append(w.items, newItem)
 			}
 		}
 	}
