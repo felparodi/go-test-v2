@@ -1,3 +1,4 @@
+import Utils from "../utils.js";
 const EYE_RADIUS_RATIO = 0.2;
 const PUPIL_RADIUS_RATIO = 0.5;
 const PLAYER_SIZE_LOCAL = 25;
@@ -48,7 +49,7 @@ export default class PlayerRender {
         ctx.restore();
     }
 
-    static drawBody(ctx, {x , y, angle}, isLocal ) {
+    static drawBody(ctx, {x , y, angle, playerId}, isLocal ) {
         const size = isLocal ? PLAYER_SIZE_LOCAL : PLAYER_SIZE_OTHER;
         ctx.save();
         ctx.translate(x, y);
@@ -81,9 +82,7 @@ export default class PlayerRender {
             gradient.addColorStop(0.5, '#1E88E5');
             gradient.addColorStop(1, '#64B5F6');
         } else {
-            gradient.addColorStop(0, '#BF360C');
-            gradient.addColorStop(0.5, '#F4511E');
-            gradient.addColorStop(1, '#FF8A65');
+            gradient.addColorStop(1, Utils.getIdToColor(playerId));
         }
         
         ctx.fillStyle = gradient;
@@ -144,7 +143,8 @@ export default class PlayerRender {
         ctx.fill();
     }
 
-    static drawPlayerInfo(ctx, { x, y, size, player, playerId }) {
+    static drawPlayerInfo(ctx, { x, y, score, playerId }, isLocal) {
+        const size = isLocal ? PLAYER_SIZE_LOCAL : PLAYER_SIZE_OTHER;
         ctx.save();
         ctx.shadowBlur = 0;
         
@@ -158,7 +158,7 @@ export default class PlayerRender {
         // Puntuación (abajo)
         ctx.fillStyle = '#FFD54F';
         ctx.font = '11px "Segoe UI", Arial, sans-serif';
-        ctx.fillText('⭐ NO' + (player.score || 0), x, y + size + 28);
+        ctx.fillText('⭐ NO' + (score || 0), x, y + size + 28);
         
         ctx.restore();
     }

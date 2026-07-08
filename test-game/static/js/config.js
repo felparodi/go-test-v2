@@ -11,8 +11,7 @@ export default {
     MOVE_SEND_INTERVAL: 50,
     
     // Jugador
-    PLAYER_SIZE_LOCAL: 25,
-    PLAYER_SIZE_OTHER: 22,
+
  
     
     // FPS

@@ -40,12 +40,13 @@ type GameState struct {
 }
 
 type PlayerData struct {
+	Id        string  `json:"playerId"`
 	X         float64 `json:"x"`
 	Y         float64 `json:"y"`
 	Score     int     `json:"score"`
 	Vx        float64 `json:"vx,omitempty"`
 	Vy        float64 `json:"vy,omitempty"`
-	Angle float64 `json:"angle"` // Nueva: última dirección
+	Angle     float64 `json:"angle"`
 }
 
 func NewServer() *Server {
@@ -263,6 +264,7 @@ func (s *Server) getGameState() GameState {
 	playersData := make(map[string]PlayerData)
 	for id, player := range s.world.Players {
 		playersData[id] = PlayerData{
+			Id:		   id,
 			X:         player.X,
 			Y:         player.Y,
 			Score:     player.Score,

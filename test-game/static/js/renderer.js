@@ -71,7 +71,7 @@ export default class Renderer {
         ctx.shadowBlur = 0;
     }
     
-    drawPlayer(player, playerId, isLocal) {
+    drawPlayer(player, isLocal) {
         const ctx = this.ctx;
         const size = isLocal ? CONFIG.PLAYER_SIZE_LOCAL : CONFIG.PLAYER_SIZE_OTHER;
         const x = player.x;
@@ -92,7 +92,7 @@ export default class Renderer {
         // --- DIBUJAR EL TRIÁNGULO ---
         PlayerRender.drawBody(ctx, player, isLocal);
         // --- NOMBRE Y PUNTUACIÓN ---
-        PlayerRender.drawPlayerInfo(ctx, {player, playerId, x, y, size})
+        PlayerRender.drawPlayerInfo(ctx, player, isLocal)
     }
     
     render(gameState, playerId) {
@@ -108,7 +108,7 @@ export default class Renderer {
         if (gameState.players) {
             Object.entries(gameState.players).forEach(([id, player]) => {
                 const isLocal = id === playerId;
-                this.drawPlayer(player, id, isLocal);
+                this.drawPlayer(player, isLocal);
             });
         }
     }
