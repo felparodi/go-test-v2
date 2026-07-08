@@ -13,8 +13,7 @@ export default {
     // Jugador
     PLAYER_SIZE_LOCAL: 25,
     PLAYER_SIZE_OTHER: 22,
-    EYE_RADIUS_RATIO: 0.2,
-    PUPIL_RADIUS_RATIO: 0.5,
+ 
     
     // FPS
     TARGET_FPS: 60,
