@@ -138,51 +138,58 @@ func (s *Server) checkRateLimit(playerID string) bool {
 	return rl.count <= 60
 }
 
+func (s *Server) initMessage(player *Player, msg Message) {
+	data := msg.Payload.(map[string]interface{})
+	if id, ok := data["playerId"].(string); ok && id != player.ID {
+		s.mu.Lock()
+		delete(s.players, player.ID)
+		s.world.mu.Lock()
+		delete(s.world.Players, player.ID)
+		
+		player.ID = id
+		s.players[id] = player
+		s.world.Players[id] = player
+		s.world.mu.Unlock()
+		s.mu.Unlock()
+		log.Printf("Jugador renombrado a %s", id)
+	}
+}
+
+func (s *Server) moveMessage(player *Player, msg Message) {
+	data := msg.Payload.(map[string]interface{})
+	velocityX := data["velocityX"].(float64)
+	velocityY := data["velocityY"].(float64)
+
+	// Limitar velocidad máxima
+	maxSpeed := 250.0
+	speed := math.Sqrt(velocityX*velocityX + velocityY*velocityY)
+	if speed > maxSpeed {
+		scale := maxSpeed / speed
+		velocityX *= scale
+		velocityY *= scale
+	}
+
+	// Guardar última dirección si hay movimiento
+	if math.Abs(velocityX) > 0.1 || math.Abs(velocityY) > 0.1 {
+		player.LastAngle = math.Atan2(velocityY, velocityX)
+	}
+
+	player.VelocityX = velocityX
+	player.VelocityY = velocityY
+}
+
+func (s *Server) actionMessage(player *Player, msg Message) {
+	actionType := msg.Payload.(map[string]interface{})["action"].(string)
+	log.Printf("Jugador %s realiza acción: %s", player.ID, actionType)
+}
+
+
 // Manejar mensajes mejorado
 func (s *Server) handleMessage(player *Player, msg Message) {
 	switch msg.Type {
-	case "init":
-		data := msg.Payload.(map[string]interface{})
-		if id, ok := data["playerId"].(string); ok && id != player.ID {
-			s.mu.Lock()
-			delete(s.players, player.ID)
-			s.world.mu.Lock()
-			delete(s.world.Players, player.ID)
-			
-			player.ID = id
-			s.players[id] = player
-			s.world.Players[id] = player
-			s.world.mu.Unlock()
-			s.mu.Unlock()
-			log.Printf("Jugador renombrado a %s", id)
-		}
-
-	case "move":
-		data := msg.Payload.(map[string]interface{})
-		velocityX := data["velocityX"].(float64)
-		velocityY := data["velocityY"].(float64)
-
-		// Limitar velocidad máxima
-		maxSpeed := 250.0
-		speed := math.Sqrt(velocityX*velocityX + velocityY*velocityY)
-		if speed > maxSpeed {
-			scale := maxSpeed / speed
-			velocityX *= scale
-			velocityY *= scale
-		}
-
-		// Guardar última dirección si hay movimiento
-		if math.Abs(velocityX) > 0.1 || math.Abs(velocityY) > 0.1 {
-			player.LastAngle = math.Atan2(velocityY, velocityX)
-		}
-
-		player.VelocityX = velocityX
-		player.VelocityY = velocityY
-
-	case "action":
-		actionType := msg.Payload.(map[string]interface{})["action"].(string)
-		log.Printf("Jugador %s realiza acción: %s", player.ID, actionType)
-
+	case "init": s.initMessage(player, msg)
+	case "move": s.moveMessage(player, msg)
+	case "action": s.actionMessage(player, msg)
 	default:
 		log.Printf("Mensaje desconocido de %s: %s", player.ID, msg.Type)
 	}

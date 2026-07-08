@@ -1,5 +1,12 @@
 // static/js/input.js
 import Utils from "./utils.js";
+
+const MOVE_UP = ['ArrowUp', 'W', 'w']
+const MOVE_DOWN = ['ArrowDown', 'S', 's']
+const MOVE_RIGTH = ['ArrowRight', 'D', 'd']
+const MOVE_LEFT = ['ArrowLeft', 'A', 'a']
+const MOVE_BUTTON = [...MOVE_UP,...MOVE_DOWN,...MOVE_LEFT,...MOVE_RIGTH]
+const ACTION_BUTTON = ['b']
 export default class InputManager {
     constructor() {
         this.keys = new Set();
@@ -10,24 +17,24 @@ export default class InputManager {
     setupListeners() {
         document.addEventListener('keydown', (e) => {
             const key = e.key;
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) {
-                e.preventDefault();
-            }
-            
             if (!this.keys.has(key)) {
                 this.keys.add(key);
+            }
+            if (MOVE_BUTTON.includes(key)) {
+                e.preventDefault();
                 this.notifyMove();
+            } else if(ACTION_BUTTON.includes(key)) {
+                this.notifyAction(key)
             }
         });
         
         document.addEventListener('keyup', (e) => {
             const key = e.key;
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) {
-                e.preventDefault();
-            }
-            
             this.keys.delete(key);
-            this.notifyMove();
+            if (MOVE_BUTTON.includes(key)) {
+                e.preventDefault();
+                this.notifyMove();
+            }
         });
         
         // Perder foco - detener movimiento
@@ -40,10 +47,10 @@ export default class InputManager {
     getDirection() {
         let x = 0, y = 0;
         
-        if (this.keys.has('ArrowLeft') || this.keys.has('a') || this.keys.has('A')) x -= 1;
-        if (this.keys.has('ArrowRight') || this.keys.has('d') || this.keys.has('D')) x += 1;
-        if (this.keys.has('ArrowUp') || this.keys.has('w') || this.keys.has('W')) y -= 1;
-        if (this.keys.has('ArrowDown') || this.keys.has('s') || this.keys.has('S')) y += 1;
+        if (MOVE_LEFT.filter(x => this.keys.has(x)).length > 0)  x -= 1;
+        if (MOVE_RIGTH.filter(x => this.keys.has(x)).length > 0) x += 1;
+        if (MOVE_UP.filter(x => this.keys.has(x)).length > 0) y -= 1;
+        if (MOVE_DOWN.filter(x => this.keys.has(x)).length > 0) y += 1;
         
         const normalized = Utils.normalize(x, y);
         return { x: normalized.x, y: normalized.y };
@@ -58,14 +65,18 @@ export default class InputManager {
     }
     
     isMoving() {
-        return this.keys.size > 0;
+        return MOVE_BUTTON.filter(x => this.keys.has(x)).length > 0;
     }
     
-    onMove(callback) {
+    onInput(callback) {
         this.moveCallbacks.push(callback);
     }
     
     notifyMove() {
-        this.moveCallbacks.forEach(callback => callback());
+        this.moveCallbacks.forEach(callback => callback('move'));
+    }
+
+    notifyAction(key) {
+        this.moveCallbacks.forEach(callback => callback('action', key));
     }
 }

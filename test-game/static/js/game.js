@@ -54,11 +54,24 @@ export default class Game {
     }
     
     setupInputHandlers() {
-        this.input.onMove(() => {
-            this.sendMovement();
+        this.input.onInput((event, info) => {
+            switch(event) {
+                case 'move': {
+                    this.sendMovement();
+                    break;
+                }
+                case 'action': {
+                    this.sendAction(info);
+                }
+            }
+            
         });
     }
     
+    sendAction(action) {
+        this.network.sendAction(action)
+    }
+
     sendMovement() {
         const now = Date.now();
         if (now - this.lastMoveSend < CONFIG.MOVE_SEND_INTERVAL) return;
