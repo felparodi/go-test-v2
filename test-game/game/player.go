@@ -11,8 +11,8 @@ type Player struct {
 	Y         float64
 	VelocityX float64
 	VelocityY float64
+	Angle	  float64
 	Score     int
-	LastAngle float64 // Nueva: última dirección de movimiento
 	Conn      *websocket.Conn
 	mu        sync.Mutex
 }
@@ -23,7 +23,7 @@ func NewPlayer(id string, conn *websocket.Conn) *Player {
 		X:         400,
 		Y:         300,
 		Score:     0,
-		LastAngle: 0, // Inicialmente mirando hacia la derecha
+		Angle:     0,
 		Conn:      conn,
 	}
 }

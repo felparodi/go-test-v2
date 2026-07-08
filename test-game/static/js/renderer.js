@@ -78,25 +78,11 @@ export default class Renderer {
         const y = player.y;
         
         // --- CALCULAR ÁNGULO DE DIRECCIÓN ---
-        let angle = 0;
         let isMoving = false;
         let {vx, vy} = player;
         vx = vx ? vx : 0;
         vy = vy ? vy : 0;
-        if (vx !== undefined && vy !== undefined) {
-            const speed = Math.sqrt(vx * vx + vy * vy);
-            
-            if (speed > 5) { // Umbral de movimiento
-                isMoving = true;
-                // Calcular ángulo en radianes
-                angle = Math.atan2(vy, vx);
-                // Guardar la última dirección
-                player.lastAngle = angle;
-            } else {
-                // Usar la última dirección guardada
-                angle = player.lastAngle || 0;
-            }
-        }
+        const angle = player.angle || 0;
         
         // --- DIBUJAR LÍNEA DE DIRECCIÓN (DEBUG) ---
         if (this.debugMode && isLocal) {

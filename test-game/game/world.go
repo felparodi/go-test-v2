@@ -71,6 +71,13 @@ func (w *World) Update(deltaTime float64) {
 			}
 		}
 
+		if player.VelocityX != 0 || player.VelocityY != 0 {
+			// Ángulo de la velocidad (dirección del movimiento)
+			velocityAngle := math.Atan2(player.VelocityY, player.VelocityX)
+			// Diferencia de ángulos (puedes devolver cualquiera de estos)
+			player.Angle = velocityAngle // Ángulo de la velocidad
+		}
+
 		// Mover con deltaTime para consistencia de velocidad
 		player.X += player.VelocityX * deltaTime
 		player.Y += player.VelocityY * deltaTime

@@ -45,7 +45,7 @@ type PlayerData struct {
 	Score     int     `json:"score"`
 	Vx        float64 `json:"vx,omitempty"`
 	Vy        float64 `json:"vy,omitempty"`
-	LastAngle float64 `json:"lastAngle,omitempty"` // Nueva: última dirección
+	Angle float64 `json:"angle"` // Nueva: última dirección
 }
 
 func NewServer() *Server {
@@ -171,7 +171,7 @@ func (s *Server) moveMessage(player *Player, msg Message) {
 
 	// Guardar última dirección si hay movimiento
 	if math.Abs(velocityX) > 0.1 || math.Abs(velocityY) > 0.1 {
-		player.LastAngle = math.Atan2(velocityY, velocityX)
+		player.Angle = math.Atan2(velocityY, velocityX)
 	}
 
 	player.VelocityX = velocityX
@@ -268,7 +268,7 @@ func (s *Server) getGameState() GameState {
 			Score:     player.Score,
 			Vx:        player.VelocityX,
 			Vy:        player.VelocityY,
-			LastAngle: player.LastAngle,
+			Angle:	   player.Angle,
 		}
 	}
 
