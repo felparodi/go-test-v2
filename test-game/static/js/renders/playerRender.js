@@ -1,7 +1,9 @@
 const EYE_RADIUS_RATIO = 0.2;
 const PUPIL_RADIUS_RATIO = 0.5;
+const PLAYER_SIZE_LOCAL = 25;
+const PLAYER_SIZE_OTHER = 22;
 export default class PlayerRender {
-    static drawDebugLine(ctx, { x, y, vx, vy, angle }) {
+    static drawDebugLine(ctx, { x, y, vx=0, vy=0, angle }) {
         ctx.save();
         ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
         ctx.lineWidth = 3;
@@ -46,7 +48,8 @@ export default class PlayerRender {
         ctx.restore();
     }
 
-    static drawBody(ctx, {x, y, angle, isLocal, size}) {
+    static drawBody(ctx, {x , y, angle}, isLocal ) {
+        const size = isLocal ? PLAYER_SIZE_LOCAL : PLAYER_SIZE_OTHER;
         ctx.save();
         ctx.translate(x, y);
         

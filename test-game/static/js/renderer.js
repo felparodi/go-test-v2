@@ -86,11 +86,11 @@ export default class Renderer {
         
         // --- DIBUJAR LÍNEA DE DIRECCIÓN (DEBUG) ---
         if (this.debugMode && isLocal) {
-            PlayerRender.drawDebugLine(ctx, {x, y, vx, vy, angle})
+            PlayerRender.drawDebugLine(ctx, player)
         }
         
         // --- DIBUJAR EL TRIÁNGULO ---
-        PlayerRender.drawBody(ctx, { x, y, angle, isLocal, size });
+        PlayerRender.drawBody(ctx, player, isLocal);
         // --- NOMBRE Y PUNTUACIÓN ---
         PlayerRender.drawPlayerInfo(ctx, {player, playerId, x, y, size})
     }
