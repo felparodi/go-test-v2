@@ -4,22 +4,24 @@ import (
 	"log"
 	"math"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 type Player struct {
-	ID        string
-	X         float64
-	Y         float64
-	VelocityX float64
-	VelocityY float64
-	Angle     float64
-	Score     int
-	Conn      *websocket.Conn
-	mu        sync.Mutex
-	world     *World
-	server    *Server
+	ID          string
+	X           float64
+	Y           float64
+	VelocityX   float64
+	VelocityY   float64
+	Angle       float64
+	Score       int
+	Conn        *websocket.Conn
+	mu          sync.Mutex
+	world       *World
+	server      *Server
+	rateLimiter *RateLimiter
 }
 
 type PlayerData struct {
@@ -32,16 +34,23 @@ type PlayerData struct {
 	Angle float64 `json:"angle"`
 }
 
+type RateLimiter struct {
+	lastUpdate time.Time
+	count      int
+	mu         sync.Mutex
+}
+
 func NewPlayer(id string, conn *websocket.Conn, s *Server, w *World) *Player {
 	return &Player{
-		ID:     id,
-		X:      400,
-		Y:      300,
-		Score:  0,
-		Angle:  0,
-		Conn:   conn,
-		server: s,
-		world:  w,
+		ID:          id,
+		X:           400,
+		Y:           300,
+		Score:       0,
+		Angle:       0,
+		Conn:        conn,
+		server:      s,
+		world:       w,
+		rateLimiter: &RateLimiter{},
 	}
 }
 
@@ -58,6 +67,20 @@ func (p *Player) start() error {
 	return nil
 }
 
+// Rate limiting mejorado
+func (p *Player) checkRateLimit() bool {
+	rl := p.rateLimiter
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	now := time.Now()
+	if now.Sub(rl.lastUpdate) > time.Second {
+		rl.count = 0
+		rl.lastUpdate = now
+	}
+	rl.count++
+	return rl.count <= 60
+}
+
 func (p *Player) readMessages() {
 	for {
 		var msg Message
@@ -68,7 +91,7 @@ func (p *Player) readMessages() {
 			return
 		}
 
-		if !p.server.checkRateLimit(p.ID) {
+		if !p.checkRateLimit() {
 			log.Printf("Rate limit excedido para %s", p.ID)
 			continue
 		}

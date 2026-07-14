@@ -18,14 +18,6 @@ type Server struct {
 	gameLoopDone chan bool
 	// Nuevo: para optimizar broadcasts
 	broadcastChan chan []byte
-	// Nuevo: rate limiting
-	rateLimiter map[string]*RateLimiter
-}
-
-type RateLimiter struct {
-	lastUpdate time.Time
-	count      int
-	mu         sync.Mutex
 }
 
 type GameState struct {
@@ -44,7 +36,6 @@ func NewServer() *Server {
 		},
 		gameLoopDone:  make(chan bool),
 		broadcastChan: make(chan []byte, 100),
-		rateLimiter:   make(map[string]*RateLimiter),
 	}
 	s.worlds = map[string]*World{"0": NewWorld(s)}
 	return s
@@ -75,54 +66,12 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	world.addPlayer(player)
 	s.mu.Unlock()
 
-	s.rateLimiter[playerID] = &RateLimiter{}
-
 	log.Printf("Jugador %s conectado", playerID)
 
 	s.sendGameState(player)
-	go s.readMessages(player)
+	go player.readMessages()
 
 	<-s.gameLoopDone
-}
-
-// Leer mensajes del cliente mejorado
-func (s *Server) readMessages(player *Player) {
-	for {
-		var msg Message
-		err := player.Conn.ReadJSON(&msg)
-		if err != nil {
-			log.Printf("Error al leer mensaje de %s: %v", player.ID, err)
-			s.removePlayer(player.ID)
-			return
-		}
-
-		if !s.checkRateLimit(player.ID) {
-			log.Printf("Rate limit excedido para %s", player.ID)
-			continue
-		}
-
-		s.handleMessage(player, msg)
-	}
-}
-
-// Rate limiting mejorado
-func (s *Server) checkRateLimit(playerID string) bool {
-	rl, exists := s.rateLimiter[playerID]
-	if !exists {
-		return true
-	}
-
-	rl.mu.Lock()
-	defer rl.mu.Unlock()
-
-	now := time.Now()
-	if now.Sub(rl.lastUpdate) > time.Second {
-		rl.count = 0
-		rl.lastUpdate = now
-	}
-
-	rl.count++
-	return rl.count <= 60
 }
 
 // @TODO Player word
