@@ -1,9 +1,9 @@
 package game
 
 import (
-	"sync"
 	"math"
 	"math/rand"
+	"sync"
 )
 
 // Zona de juego con coordenadas
@@ -11,24 +11,18 @@ type World struct {
 	Width   int
 	Height  int
 	Players map[string]*Player
+	server  *Server
 	mu      sync.RWMutex
 	items   []Item
 }
 
-type Item struct {
-	ID    string
-	X     float64
-	Y     float64
-	Type  string
-	Value int
-}
-
-func NewWorld() *World {
+func NewWorld(s *Server) *World {
 	return &World{
 		Width:   800,
 		Height:  600,
 		Players: make(map[string]*Player),
 		items:   generateItems(),
+		server:  s,
 	}
 }
 
@@ -105,12 +99,11 @@ func (w *World) Update(deltaTime float64) {
 			item := w.items[i]
 			dx := player.X - item.X
 			dy := player.Y - item.Y
-			distance := math.Sqrt(dx*dx + dy*dy)
-			
-			if distance < 30 { // Radio de colección
+			distance := dx*dx + dy*dy
+			if distance < 900 { // Radio de colección
 				player.Score += item.Value
 				w.items = append(w.items[:i], w.items[i+1:]...)
-				
+
 				// Regenerar item en nueva posición
 				newItem := Item{
 					ID:    "item_" + string(rune(i)),
@@ -123,4 +116,35 @@ func (w *World) Update(deltaTime float64) {
 			}
 		}
 	}
+}
+
+func (w *World) getPlayer(playerId string) (*Player, bool) {
+	player, exists := w.Players[playerId]
+	return player, exists
+}
+
+func (w *World) addPlayer(player *Player) {
+	w.mu.Lock()
+	w.Players[player.ID] = player
+	w.mu.Unlock()
+}
+
+func (w *World) removePlayer(player *Player) {
+	w.mu.Lock()
+	delete(w.Players, player.ID)
+	w.mu.Unlock()
+}
+
+func (w *World) removePlayerId(playerId string) {
+	w.mu.Lock()
+	delete(w.Players, playerId)
+	w.mu.Unlock()
+}
+
+func (w *World) getPlayers() []*Player {
+	valores := make([]*Player, 0, len(w.Players))
+	for _, v := range w.Players {
+		valores = append(valores, v)
+	}
+	return valores
 }

@@ -12,8 +12,7 @@ import (
 )
 
 type Server struct {
-	world        *World
-	players      map[string]*Player
+	worlds       map[string]*World
 	upgrader     websocket.Upgrader
 	mu           sync.RWMutex
 	gameLoopDone chan bool
@@ -29,30 +28,13 @@ type RateLimiter struct {
 	mu         sync.Mutex
 }
 
-type Message struct {
-	Type    string      `json:"type"`
-	Payload interface{} `json:"payload"`
-}
-
 type GameState struct {
 	Players map[string]PlayerData `json:"players"`
 	Items   []Item                `json:"items"`
 }
 
-type PlayerData struct {
-	Id        string  `json:"playerId"`
-	X         float64 `json:"x"`
-	Y         float64 `json:"y"`
-	Score     int     `json:"score"`
-	Vx        float64 `json:"vx,omitempty"`
-	Vy        float64 `json:"vy,omitempty"`
-	Angle     float64 `json:"angle"`
-}
-
 func NewServer() *Server {
-	return &Server{
-		world: NewWorld(),
-		players: make(map[string]*Player),
+	s := &Server{
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true
@@ -64,6 +46,12 @@ func NewServer() *Server {
 		broadcastChan: make(chan []byte, 100),
 		rateLimiter:   make(map[string]*RateLimiter),
 	}
+	s.worlds = map[string]*World{"0": NewWorld(s)}
+	return s
+}
+
+func (s *Server) getWorldTo() *World {
+	return s.worlds["0"]
 }
 
 // Manejar conexión WebSocket
@@ -80,13 +68,11 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		playerID = conn.RemoteAddr().String()
 	}
 
-	player := NewPlayer(playerID, conn)
+	world := s.getWorldTo()
+	player := NewPlayer(playerID, conn, s, world)
 
 	s.mu.Lock()
-	s.players[playerID] = player
-	s.world.mu.Lock()
-	s.world.Players[playerID] = player
-	s.world.mu.Unlock()
+	world.addPlayer(player)
 	s.mu.Unlock()
 
 	s.rateLimiter[playerID] = &RateLimiter{}
@@ -139,18 +125,19 @@ func (s *Server) checkRateLimit(playerID string) bool {
 	return rl.count <= 60
 }
 
+// @TODO Player word
+func (s *Server) getPlayerWorld(p *Player) *World {
+	return s.worlds["0"]
+}
+
 func (s *Server) initMessage(player *Player, msg Message) {
 	data := msg.Payload.(map[string]interface{})
 	if id, ok := data["playerId"].(string); ok && id != player.ID {
 		s.mu.Lock()
-		delete(s.players, player.ID)
-		s.world.mu.Lock()
-		delete(s.world.Players, player.ID)
-		
+		world := s.getPlayerWorld(player)
+		world.removePlayer(player)
 		player.ID = id
-		s.players[id] = player
-		s.world.Players[id] = player
-		s.world.mu.Unlock()
+		world.addPlayer(player)
 		s.mu.Unlock()
 		log.Printf("Jugador renombrado a %s", id)
 	}
@@ -184,13 +171,15 @@ func (s *Server) actionMessage(player *Player, msg Message) {
 	log.Printf("Jugador %s realiza acción: %s", player.ID, actionType)
 }
 
-
 // Manejar mensajes mejorado
 func (s *Server) handleMessage(player *Player, msg Message) {
 	switch msg.Type {
-	case "init": s.initMessage(player, msg)
-	case "move": s.moveMessage(player, msg)
-	case "action": s.actionMessage(player, msg)
+	case "init":
+		s.initMessage(player, msg)
+	case "move":
+		s.moveMessage(player, msg)
+	case "action":
+		s.actionMessage(player, msg)
 	default:
 		log.Printf("Mensaje desconocido de %s: %s", player.ID, msg.Type)
 	}
@@ -209,7 +198,7 @@ func (s *Server) sendGameStateToAll() {
 	}
 
 	var wg sync.WaitGroup
-	for _, player := range s.players {
+	for _, player := range s.getPlayers() {
 		wg.Add(1)
 		go func(p *Player) {
 			defer wg.Done()
@@ -240,7 +229,7 @@ func (s *Server) GameLoop() {
 			return
 
 		case <-physicsTicker.C:
-			s.world.Update(fixedDeltaTime)
+			s.worlds["0"].Update(fixedDeltaTime)
 
 		case <-ticker.C:
 			now := time.Now()
@@ -258,25 +247,17 @@ func (s *Server) GameLoop() {
 
 // Obtener estado del juego incluyendo velocidades
 func (s *Server) getGameState() GameState {
-	s.world.mu.RLock()
-	defer s.world.mu.RUnlock()
+	s.worlds["0"].mu.RLock()
+	defer s.worlds["0"].mu.RUnlock()
 
 	playersData := make(map[string]PlayerData)
-	for id, player := range s.world.Players {
-		playersData[id] = PlayerData{
-			Id:		   id,
-			X:         player.X,
-			Y:         player.Y,
-			Score:     player.Score,
-			Vx:        player.VelocityX,
-			Vy:        player.VelocityY,
-			Angle:	   player.Angle,
-		}
+	for id, player := range s.worlds["0"].Players {
+		playersData[id] = player.toData()
 	}
 
 	return GameState{
 		Players: playersData,
-		Items:   s.world.items,
+		Items:   s.worlds["0"].items,
 	}
 }
 
@@ -296,14 +277,26 @@ func (s *Server) removePlayer(id string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if player, exists := s.players[id]; exists {
+	if player, exists := s.getPlayer(id); exists {
 		player.Conn.Close()
-		delete(s.players, id)
-		
-		s.world.mu.Lock()
-		delete(s.world.Players, id)
-		s.world.mu.Unlock()
-		
+
+		s.worlds["0"].removePlayerId(id)
+
 		log.Printf("Jugador %s desconectado", id)
 	}
+}
+
+/*
+*
+ */
+func (s *Server) getPlayer(playerId string) (*Player, bool) {
+	return s.worlds["0"].getPlayer(playerId)
+}
+
+func (s *Server) getPlayers() []*Player {
+	players := make([]*Player, 0)
+	for _, word := range s.worlds {
+		players = append(players, word.getPlayers()...)
+	}
+	return players
 }
