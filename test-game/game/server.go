@@ -3,7 +3,6 @@ package game
 import (
 	"encoding/json"
 	"log"
-	"math"
 	"net/http"
 	"sync"
 	"time"
@@ -21,8 +20,8 @@ type Server struct {
 }
 
 type GameState struct {
-	Players map[string]PlayerData `json:"players"`
-	Items   []Item                `json:"items"`
+	Players map[string]interface{} `json:"players"`
+	Items   []interface{}          `json:"items"`
 }
 
 func NewServer() *Server {
@@ -77,61 +76,6 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 // @TODO Player word
 func (s *Server) getPlayerWorld(p *Player) *World {
 	return s.worlds["0"]
-}
-
-func (s *Server) initMessage(player *Player, msg Message) {
-	data := msg.Payload.(map[string]interface{})
-	if id, ok := data["playerId"].(string); ok && id != player.ID {
-		s.mu.Lock()
-		world := s.getPlayerWorld(player)
-		world.removePlayer(player)
-		player.ID = id
-		world.addPlayer(player)
-		s.mu.Unlock()
-		log.Printf("Jugador renombrado a %s", id)
-	}
-}
-
-func (s *Server) moveMessage(player *Player, msg Message) {
-	data := msg.Payload.(map[string]interface{})
-	velocityX := data["velocityX"].(float64)
-	velocityY := data["velocityY"].(float64)
-
-	// Limitar velocidad máxima
-	maxSpeed := 250.0
-	speed := math.Sqrt(velocityX*velocityX + velocityY*velocityY)
-	if speed > maxSpeed {
-		scale := maxSpeed / speed
-		velocityX *= scale
-		velocityY *= scale
-	}
-
-	// Guardar última dirección si hay movimiento
-	if math.Abs(velocityX) > 0.1 || math.Abs(velocityY) > 0.1 {
-		player.Angle = math.Atan2(velocityY, velocityX)
-	}
-
-	player.VelocityX = velocityX
-	player.VelocityY = velocityY
-}
-
-func (s *Server) actionMessage(player *Player, msg Message) {
-	actionType := msg.Payload.(map[string]interface{})["action"].(string)
-	log.Printf("Jugador %s realiza acción: %s", player.ID, actionType)
-}
-
-// Manejar mensajes mejorado
-func (s *Server) handleMessage(player *Player, msg Message) {
-	switch msg.Type {
-	case "init":
-		s.initMessage(player, msg)
-	case "move":
-		s.moveMessage(player, msg)
-	case "action":
-		s.actionMessage(player, msg)
-	default:
-		log.Printf("Mensaje desconocido de %s: %s", player.ID, msg.Type)
-	}
 }
 
 // Enviar estado del juego con optimización de broadcast
@@ -199,15 +143,24 @@ func (s *Server) getGameState() GameState {
 	s.worlds["0"].mu.RLock()
 	defer s.worlds["0"].mu.RUnlock()
 
-	playersData := make(map[string]PlayerData)
+	playersData := make(map[string]interface{})
 	for id, player := range s.worlds["0"].Players {
-		playersData[id] = player.toData()
+		playersData[id] = itemToJson(player)
 	}
 
-	return GameState{
-		Players: playersData,
-		Items:   s.worlds["0"].items,
+	itemsData := []interface{}{}
+	for _, item := range s.worlds["0"].getItems() {
+		//log.Println(item)
+		itemsData = append(itemsData, itemToJson(item))
 	}
+
+	r := GameState{
+		Players: playersData,
+		Items:   itemsData,
+	}
+
+	//log.Println(r)
+	return r
 }
 
 // Enviar estado a un jugador específico

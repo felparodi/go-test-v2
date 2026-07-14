@@ -35,8 +35,7 @@ export default class Renderer {
     
     drawItem(item) {
         const ctx = this.ctx;
-        const x = item.X;
-        const y = item.Y;
+        const { x, y } = item;
         
         const gradient = ctx.createRadialGradient(x, y, 2, x, y, 18);
         gradient.addColorStop(0, '#4CAF50');
@@ -79,9 +78,7 @@ export default class Renderer {
         
         // --- CALCULAR ÁNGULO DE DIRECCIÓN ---
         let isMoving = false;
-        let {vx, vy} = player;
-        vx = vx ? vx : 0;
-        vy = vy ? vy : 0;
+    
         const angle = player.angle || 0;
         
         // --- DIBUJAR LÍNEA DE DIRECCIÓN (DEBUG) ---

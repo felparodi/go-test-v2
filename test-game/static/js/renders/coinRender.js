@@ -7,8 +7,7 @@ export default class CoinRender {
     }
 
     static render(ctx, item) {
-        const x = item.X;
-        const y = item.Y;
+        const { x, y } = item;
         
         const gradient = ctx.createRadialGradient(x, y, 2, x, y, 18);
         gradient.addColorStop(0, '#4CAF50');
