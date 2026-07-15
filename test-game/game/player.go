@@ -20,13 +20,30 @@ type Player struct {
 	world       *World
 	server      *Server
 	rateLimiter *RateLimiter
-	events      []ItemEvent
 }
 
 type RateLimiter struct {
 	lastUpdate time.Time
 	count      int
 	mu         sync.Mutex
+}
+
+type PlayerEvent struct {
+	owner   *Player
+	name    string
+	targets []Item
+}
+
+func (pe *PlayerEvent) getOwner() Item {
+	return pe.owner
+}
+
+func (pe *PlayerEvent) getEventName() string {
+	return pe.name
+}
+
+func (pe *PlayerEvent) getTragets() []Item {
+	return pe.targets
 }
 
 func NewPlayer(id string, conn *websocket.Conn, s *Server, w *World) *Player {
@@ -41,7 +58,6 @@ func NewPlayer(id string, conn *websocket.Conn, s *Server, w *World) *Player {
 		server:      s,
 		world:       w,
 		rateLimiter: &RateLimiter{},
-		events:      []ItemEvent{},
 	}
 }
 
@@ -146,9 +162,10 @@ func (p *Player) handleMessage(msg Message) {
 	}
 }
 
-func (player *Player) update(deltaTime float64) {
+func (player *Player) update(deltaTime float64, _ *World) []WorldEvent {
 	//Copio la posicion anterior
 	player.OldPos = player.Position
+	events := []WorldEvent{}
 	const friction = 0.92
 	const minVelocity = 0.1
 	// Aplicar fricción gradual
@@ -179,49 +196,42 @@ func (player *Player) update(deltaTime float64) {
 	if player.Position.X < 0 {
 		player.Position.X = 0
 		player.Velocity.X = 0
-		player.events = append(player.events, ItemEvent{Type: "limit-min-x"})
+		events = append(events, &PlayerEvent{name: "limit-min-x", owner: player})
 	}
 	if player.Position.X > float64(player.world.Width) {
 		player.Position.X = float64(player.world.Width)
 		player.Velocity.X = 0
-		player.events = append(player.events, ItemEvent{Type: "limit-max-x"})
+		events = append(events, &PlayerEvent{name: "limit-max-x", owner: player})
 	}
 	if player.Position.Y < 0 {
 		player.Position.Y = 0
 		player.Velocity.Y = 0
-		player.events = append(player.events, ItemEvent{Type: "limit-min-y"})
+		events = append(events, &PlayerEvent{name: "limit-min-y", owner: player})
 	}
 	if player.Position.Y > float64(player.world.Height) {
 		player.Position.Y = float64(player.world.Height)
 		player.Velocity.Y = 0
-		player.events = append(player.events, ItemEvent{Type: "limit-max-y"})
+		events = append(events, &PlayerEvent{name: "limit-max-y", owner: player})
 	}
-}
-
-func (p *Player) isCollition(_ Item) bool {
-	return false
+	return events
 }
 
 func (p *Player) getId() string {
 	return p.ID
 }
 
-func (p *Player) getType() interface{} {
-	return p
-}
-
 func (p *Player) getPosition() Position {
 	return p.Position
 }
 
-func (p *Player) getEvents() []ItemEvent {
-	return p.events
+func (p *Player) setPosition(pos Position) {
+	p.Position = pos
 }
 
 func (p *Player) cleanEvents() {
 
 }
 
-func (p *Player) collition(_ Item) {
-
+func (p *Player) collition(_ Item, _ *World) []WorldEvent {
+	return []WorldEvent{}
 }

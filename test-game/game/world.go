@@ -5,13 +5,19 @@ import (
 	"sync"
 )
 
+type WorldEvent interface {
+	getEventName() string
+	getOwner() Item
+	getTragets() []Item
+}
+
 // Zona de juego con coordenadas
 type World struct {
 	Width   int
 	Height  int
 	Players map[string]*Player
 	Items   map[string]Item
-	server  *Server
+	Server  *Server
 	mu      sync.RWMutex
 }
 
@@ -20,10 +26,8 @@ func generateItems(cantItems int, w *World) []Item {
 	// Generar items aleatorios en el mapa
 	for i := 0; i < cantItems; i++ {
 		c := NewCoin(i, w)
-		log.Println("generateItems.c", i, c)
 		items = append(items, c)
 	}
-	log.Println("generateItems", items)
 	return items
 }
 
@@ -33,13 +37,11 @@ func NewWorld(s *Server) *World {
 		Height:  600,
 		Players: make(map[string]*Player),
 		Items:   make(map[string]Item),
-		server:  s,
+		Server:  s,
 	}
 	for _, item := range generateItems(20, world) {
-		log.Println("NewWorld.for", item.getId(), item)
 		world.Items[item.getId()] = item
 	}
-	log.Println("NewWorld", world)
 	return world
 }
 
@@ -47,24 +49,25 @@ func NewWorld(s *Server) *World {
 func (w *World) Update(deltaTime float64) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	//items := []Item(append(w.Items))
+	events := []WorldEvent{}
 	for _, player := range w.Players {
-		player.update(deltaTime)
-
-		// Recolectar items con mejor detección
-		/*
-			for _, item := range w.Items {
-				if item.isCollition(player) {
-					player.Score += 10
-					w.items = append(w.items[:i], w.items[i+1:]...)
-
-					// Regenerar item en nueva posición
-					newItem := NewCoin(i, w)
-					w.items = append(w.items, newItem)
-				}
-			}
-		*/
+		events = append(events, player.update(deltaTime, w)...)
 	}
+
+	// Coliciones
+	for _, p := range w.Players {
+		for _, i := range w.Items {
+			events = append(events, i.collition(p, w)...)
+		}
+	}
+	// Event Loop
+
+	//Coliciones
+	for _, e := range events {
+		log.Println("Event", e.getEventName(), e.getOwner(), e.getTragets())
+		w.processEvent(e)
+	}
+
 }
 
 func (w *World) getPlayer(playerId string) (*Player, bool) {
@@ -106,4 +109,21 @@ func (w *World) getItems() []Item {
 		}
 	}
 	return valores
+}
+
+func (w *World) processEvent(e WorldEvent) {
+	switch e.getEventName() {
+	case "move-item-random-pose":
+		e.getOwner().setPosition(getRandPosistion(w))
+	case "add-point":
+		for _, t := range e.getTragets() {
+			switch t.(type) {
+			case *Player:
+				p, _ := t.(*Player)
+				p.Score += 10
+			default:
+				break
+			}
+		}
+	}
 }

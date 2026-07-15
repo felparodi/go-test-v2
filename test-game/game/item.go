@@ -5,11 +5,9 @@ import "math/rand"
 type Item interface {
 	getId() string
 	getPosition() Position
-	getType() interface{}
-	update(float64)
-	collition(Item)
-	getEvents() []ItemEvent
-	cleanEvents()
+	setPosition(Position)
+	update(float64, *World) []WorldEvent
+	collition(Item, *World) []WorldEvent
 }
 
 type ItemEvent struct {

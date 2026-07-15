@@ -10,16 +10,34 @@ type Coin struct {
 	events []ItemEvent
 }
 
+type CoinEvent struct {
+	owner   *Coin
+	name    string
+	targets []Item
+}
+
+func (ce *CoinEvent) getOwner() Item {
+	return ce.owner
+}
+
+func (ce *CoinEvent) getEventName() string {
+	return ce.name
+}
+
+func (ce *CoinEvent) getTragets() []Item {
+	return ce.targets
+}
+
 func (c *Coin) getId() string {
 	return c.ID
 }
 
-func (c *Coin) getType() interface{} {
-	return c
-}
-
 func (c *Coin) getPosition() Position {
 	return c.pos
+}
+
+func (c *Coin) setPosition(pos Position) {
+	c.pos = pos
 }
 
 func NewCoin(i int, w *World) *Coin {
@@ -31,16 +49,25 @@ func NewCoin(i int, w *World) *Coin {
 	}
 }
 
-func (c *Coin) collition(i Item) {
-	if i.getType() == "player" {
-		if c.isCollition(i) {
-			c.events = []ItemEvent{
-				{Type: "add-point"},
-				{Type: "remove-item"},
-				{Type: "create-item"},
-			}
+func (c *Coin) collition(i Item, w *World) []WorldEvent {
+	events := []WorldEvent{}
+	if c.isCollition(i) {
+		switch i.(type) {
+		case *Player:
+			events = append(events,
+				&CoinEvent{
+					name:    "add-point",
+					owner:   c,
+					targets: []Item{i},
+				},
+				&CoinEvent{
+					name:  "move-item-random-pose",
+					owner: c,
+				},
+			)
 		}
 	}
+	return events
 }
 
 func (c *Coin) isCollition(i Item) bool {
@@ -50,14 +77,6 @@ func (c *Coin) isCollition(i Item) bool {
 	return distance < 900
 }
 
-func (c *Coin) update(deltaTime float64) {
-
-}
-
-func (c *Coin) getEvents() []ItemEvent {
-	return c.events
-}
-
-func (c *Coin) cleanEvents() {
-	c.events = []ItemEvent{}
+func (c *Coin) update(_ float64, _ *World) []WorldEvent {
+	return []WorldEvent{}
 }
