@@ -125,11 +125,3 @@ func (p *Player) handleMessage(msg Message) {
 func (p *Player) getId() string {
 	return p.ID
 }
-
-func (p *Player) cleanEvents() {
-
-}
-
-func (p *Player) collition(_ Item, _ *World) []WorldEvent {
-	return []WorldEvent{}
-}

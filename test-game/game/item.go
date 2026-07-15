@@ -6,18 +6,20 @@ type Item interface {
 	getId() string
 	getPosition() Position
 	setPosition(Position)
-	update(float64, *World) []WorldEvent
-	collition(Item, *World) []WorldEvent
-}
-
-type ItemEvent struct {
-	Type string
+	update(float64, *World) []Event
+	collition(Item, *World) []Event
 }
 
 type Position struct {
 	X     float64
 	Y     float64
 	Angle float64
+}
+
+type Event interface {
+	getEventName() string
+	getOwner() Item
+	getTragets() []Item
 }
 
 func getRandPosistion(w *World) Position {

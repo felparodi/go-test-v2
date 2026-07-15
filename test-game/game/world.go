@@ -5,12 +5,6 @@ import (
 	"sync"
 )
 
-type WorldEvent interface {
-	getEventName() string
-	getOwner() Item
-	getTragets() []Item
-}
-
 // Zona de juego con coordenadas
 type World struct {
 	Width   int
@@ -55,7 +49,7 @@ func NewWorld(s *Server) *World {
 func (w *World) Update(deltaTime float64) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	events := []WorldEvent{}
+	events := []Event{}
 	for _, item := range w.Items {
 		events = append(events, item.update(deltaTime, w)...)
 	}
@@ -124,7 +118,7 @@ func (w *World) getWorldState() WorldState {
 	return ret
 }
 
-func (w *World) processEvent(e WorldEvent) {
+func (w *World) processEvent(e Event) {
 	switch e.getEventName() {
 	case "move-item-random-pose":
 		e.getOwner().setPosition(getRandPosistion(w))

@@ -5,9 +5,8 @@ import (
 )
 
 type Coin struct {
-	ID     string
-	pos    Position
-	events []ItemEvent
+	ID  string
+	pos Position
 }
 
 type CoinEvent struct {
@@ -41,16 +40,14 @@ func (c *Coin) setPosition(pos Position) {
 }
 
 func NewCoin(i int, w *World) *Coin {
-
 	return &Coin{
-		ID:     fmt.Sprintf("coin_%d", i),
-		pos:    getRandPosistion(w),
-		events: []ItemEvent{},
+		ID:  fmt.Sprintf("coin_%d", i),
+		pos: getRandPosistion(w),
 	}
 }
 
-func (c *Coin) collition(i Item, w *World) []WorldEvent {
-	events := []WorldEvent{}
+func (c *Coin) collition(i Item, w *World) []Event {
+	events := []Event{}
 	if c.isCollition(i) {
 		switch i.(type) {
 		case *Character:
@@ -77,6 +74,6 @@ func (c *Coin) isCollition(i Item) bool {
 	return distance < 900
 }
 
-func (c *Coin) update(_ float64, _ *World) []WorldEvent {
-	return []WorldEvent{}
+func (c *Coin) update(_ float64, _ *World) []Event {
+	return []Event{}
 }

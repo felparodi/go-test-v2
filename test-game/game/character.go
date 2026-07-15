@@ -70,10 +70,10 @@ func (c *Character) move(velocityX float64, velocityY float64) {
 	c.Velocity.Y = velocityY
 }
 
-func (c *Character) update(deltaTime float64, w *World) []WorldEvent {
+func (c *Character) update(deltaTime float64, w *World) []Event {
 	//Copio la posicion anterior
 	c.OldPos = c.Position
-	events := []WorldEvent{}
+	events := []Event{}
 	const friction = 0.92
 	const minVelocity = 0.1
 	// Aplicar fricción gradual
@@ -136,6 +136,6 @@ func (c *Character) setPosition(pos Position) {
 	c.Position = pos
 }
 
-func (c *Character) collition(_ Item, _ *World) []WorldEvent {
-	return []WorldEvent{}
+func (c *Character) collition(_ Item, _ *World) []Event {
+	return []Event{}
 }
