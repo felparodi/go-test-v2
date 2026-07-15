@@ -10,6 +10,7 @@ type Character struct {
 	Velocity Position
 	OldPos   Position
 	Score    int
+	Player   *Player
 }
 
 type CharacterEvent struct {
@@ -30,7 +31,7 @@ func (ce *CharacterEvent) getTragets() []Item {
 	return ce.targets
 }
 
-func NewCharacter(id string, s *Server, w *World) *Character {
+func NewCharacter(id string, w *World) *Character {
 	pos := getRandPosistion(w)
 	return &Character{
 		ID:       id,
@@ -39,6 +40,14 @@ func NewCharacter(id string, s *Server, w *World) *Character {
 		Velocity: Position{X: 0, Y: 0, Angle: 0},
 		Score:    0,
 	}
+}
+
+func (c *Character) setPlayer(p *Player) {
+	c.Player = p
+}
+
+func (c *Character) getPlayer() *Player {
+	return c.Player
 }
 
 func (c *Character) move(velocityX float64, velocityY float64) {

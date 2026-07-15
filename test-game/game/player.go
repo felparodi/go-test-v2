@@ -2,7 +2,6 @@ package game
 
 import (
 	"log"
-	"math"
 	"sync"
 	"time"
 
@@ -11,10 +10,7 @@ import (
 
 type Player struct {
 	ID          string
-	Position    Position
-	Velocity    Position
-	OldPos      Position
-	Score       int
+	Character   *Character
 	Conn        *websocket.Conn
 	mu          sync.Mutex
 	world       *World
@@ -28,37 +24,17 @@ type RateLimiter struct {
 	mu         sync.Mutex
 }
 
-type PlayerEvent struct {
-	owner   *Player
-	name    string
-	targets []Item
-}
-
-func (pe *PlayerEvent) getOwner() Item {
-	return pe.owner
-}
-
-func (pe *PlayerEvent) getEventName() string {
-	return pe.name
-}
-
-func (pe *PlayerEvent) getTragets() []Item {
-	return pe.targets
-}
-
 func NewPlayer(id string, conn *websocket.Conn, s *Server, w *World) *Player {
-	pos := getRandPosistion(w)
-	return &Player{
+	ret := &Player{
 		ID:          id,
-		Position:    pos,
-		OldPos:      pos,
-		Velocity:    Position{X: 0, Y: 0, Angle: 0},
-		Score:       0,
+		Character:   NewCharacter(id, w),
 		Conn:        conn,
 		server:      s,
 		world:       w,
 		rateLimiter: &RateLimiter{},
 	}
+	ret.Character.setPlayer(ret)
+	return ret
 }
 
 func (p *Player) Send(message []byte) error {
@@ -113,6 +89,7 @@ func (p *Player) initMessage(msg Message) {
 		p.mu.Lock()
 		p.world.removePlayer(p)
 		p.ID = id
+		p.Character.ID = id
 		p.world.addPlayer(p)
 		p.mu.Unlock()
 		log.Printf("Jugador renombrado a %s", id)
@@ -124,24 +101,7 @@ func (player *Player) moveMessage(msg Message) {
 	data := msg.Payload.(map[string]interface{})
 	velocityX := data["velocityX"].(float64)
 	velocityY := data["velocityY"].(float64)
-
-	// Limitar velocidad máxima
-	maxSpeed := 250.0
-	speed := math.Sqrt(velocityX*velocityX + velocityY*velocityY)
-	if speed > maxSpeed {
-		scale := maxSpeed / speed
-		velocityX *= scale
-		velocityY *= scale
-	}
-
-	// Guardar última dirección si hay movimiento
-	if math.Abs(velocityX) > 0.1 || math.Abs(velocityY) > 0.1 {
-		player.Velocity.Angle = math.Atan2(velocityY, velocityX)
-		player.Position.Angle = math.Atan2(velocityY, velocityX)
-	}
-
-	player.Velocity.X = velocityX
-	player.Velocity.Y = velocityY
+	player.Character.move(velocityX, velocityY)
 }
 
 func (player *Player) actionMessage(msg Message) {
@@ -162,70 +122,8 @@ func (p *Player) handleMessage(msg Message) {
 	}
 }
 
-func (player *Player) update(deltaTime float64, _ *World) []WorldEvent {
-	//Copio la posicion anterior
-	player.OldPos = player.Position
-	events := []WorldEvent{}
-	const friction = 0.92
-	const minVelocity = 0.1
-	// Aplicar fricción gradual
-	if player.Velocity.X != 0 || player.Velocity.Y != 0 {
-		// Reducir velocidad gradualmente cuando no hay input
-		player.Velocity.X *= friction
-		player.Velocity.Y *= friction
-
-		// Si la velocidad es muy pequeña, detener
-		if math.Abs(player.Velocity.X) < minVelocity {
-			player.Velocity.X = 0
-		}
-		if math.Abs(player.Velocity.Y) < minVelocity {
-			player.Velocity.Y = 0
-		}
-	}
-
-	if player.Velocity.X != 0 || player.Velocity.Y != 0 {
-		// Ángulo de la velocidad (dirección del movimiento)
-		velocityAngle := math.Atan2(player.Velocity.Y, player.Velocity.X)
-		// Diferencia de ángulos (puedes devolver cualquiera de estos)
-		player.Velocity.Angle = velocityAngle // Ángulo de la velocidad
-	}
-
-	// Mover con deltaTime para consistencia de velocidad
-	player.Position.X += player.Velocity.X * deltaTime
-	player.Position.Y += player.Velocity.Y * deltaTime
-	if player.Position.X < 0 {
-		player.Position.X = 0
-		player.Velocity.X = 0
-		events = append(events, &PlayerEvent{name: "limit-min-x", owner: player})
-	}
-	if player.Position.X > float64(player.world.Width) {
-		player.Position.X = float64(player.world.Width)
-		player.Velocity.X = 0
-		events = append(events, &PlayerEvent{name: "limit-max-x", owner: player})
-	}
-	if player.Position.Y < 0 {
-		player.Position.Y = 0
-		player.Velocity.Y = 0
-		events = append(events, &PlayerEvent{name: "limit-min-y", owner: player})
-	}
-	if player.Position.Y > float64(player.world.Height) {
-		player.Position.Y = float64(player.world.Height)
-		player.Velocity.Y = 0
-		events = append(events, &PlayerEvent{name: "limit-max-y", owner: player})
-	}
-	return events
-}
-
 func (p *Player) getId() string {
 	return p.ID
-}
-
-func (p *Player) getPosition() Position {
-	return p.Position
-}
-
-func (p *Player) setPosition(pos Position) {
-	p.Position = pos
 }
 
 func (p *Player) cleanEvents() {

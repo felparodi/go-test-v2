@@ -53,7 +53,7 @@ func (c *Coin) collition(i Item, w *World) []WorldEvent {
 	events := []WorldEvent{}
 	if c.isCollition(i) {
 		switch i.(type) {
-		case *Player:
+		case *Character:
 			events = append(events,
 				&CoinEvent{
 					name:    "add-point",

@@ -4,6 +4,8 @@ type PlayerData struct {
 	Id    string  `json:"playerId"`
 	X     float64 `json:"x"`
 	Y     float64 `json:"y"`
+	Vx    float64 `json:"vx"`
+	Vy    float64 `json:"vy"`
 	Score int     `json:"score"`
 	Angle float64 `json:"angle"`
 }
@@ -14,7 +16,7 @@ type CoinData struct {
 	Y  float64 `json:"y"`
 }
 
-func itemToJson(i Item) interface{} {
+func toJson(i interface{}) interface{} {
 	switch i.(type) {
 	case *Coin:
 		c, _ := i.(*Coin)
@@ -31,10 +33,12 @@ func itemToJson(i Item) interface{} {
 func playerToJson(p *Player) PlayerData {
 	return PlayerData{
 		Id:    p.ID,
-		X:     p.Position.X,
-		Y:     p.Position.Y,
-		Score: p.Score,
-		Angle: p.Position.Angle,
+		X:     p.Character.Position.X,
+		Y:     p.Character.Position.Y,
+		Vx:    p.Character.Velocity.X,
+		Vy:    p.Character.Velocity.Y,
+		Score: p.Character.Score,
+		Angle: p.Character.Position.Angle,
 	}
 }
 

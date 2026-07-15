@@ -21,6 +21,12 @@ type World struct {
 	mu      sync.RWMutex
 }
 
+type WorldState struct {
+	Coins      []*Coin
+	Characters []*Character
+	Players    []*Player
+}
+
 func generateItems(cantItems int, w *World) []Item {
 	items := []Item{}
 	// Generar items aleatorios en el mapa
@@ -35,8 +41,8 @@ func NewWorld(s *Server) *World {
 	world := &World{
 		Width:   800,
 		Height:  600,
-		Players: make(map[string]*Player),
 		Items:   make(map[string]Item),
+		Players: make(map[string]*Player),
 		Server:  s,
 	}
 	for _, item := range generateItems(20, world) {
@@ -50,14 +56,16 @@ func (w *World) Update(deltaTime float64) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	events := []WorldEvent{}
-	for _, player := range w.Players {
-		events = append(events, player.update(deltaTime, w)...)
+	for _, item := range w.Items {
+		events = append(events, item.update(deltaTime, w)...)
 	}
 
 	// Coliciones
-	for _, p := range w.Players {
-		for _, i := range w.Items {
-			events = append(events, i.collition(p, w)...)
+	for _, it1 := range w.Items {
+		for _, it2 := range w.Items {
+			if it1.getId() != it2.getId() {
+				events = append(events, it1.collition(it2, w)...)
+			}
 		}
 	}
 	// Event Loop
@@ -70,45 +78,50 @@ func (w *World) Update(deltaTime float64) {
 
 }
 
-func (w *World) getPlayer(playerId string) (*Player, bool) {
-	player, exists := w.Players[playerId]
-	return player, exists
-}
-
-func (w *World) addPlayer(player *Player) {
+func (w *World) addPlayer(p *Player) {
 	w.mu.Lock()
-	w.Players[player.ID] = player
+	w.Players[p.getId()] = p
+	w.Items[p.Character.getId()] = p.Character
 	w.mu.Unlock()
 }
 
-func (w *World) removePlayer(player *Player) {
+func (w *World) removePlayer(p *Player) {
 	w.mu.Lock()
-	delete(w.Players, player.ID)
+	delete(w.Players, p.getId())
+	delete(w.Items, p.Character.getId())
 	w.mu.Unlock()
 }
 
 func (w *World) removePlayerId(playerId string) {
 	w.mu.Lock()
+	p, exits := w.Players[playerId]
 	delete(w.Players, playerId)
+	if exits {
+		delete(w.Items, p.Character.getId())
+	}
 	w.mu.Unlock()
 }
 
-func (w *World) getPlayers() []*Player {
-	valores := make([]*Player, 0, len(w.Players))
-	for _, v := range w.Players {
-		valores = append(valores, v)
+func (w *World) getWorldState() WorldState {
+	ret := WorldState{
+		Coins:      []*Coin{},
+		Characters: []*Character{},
+		Players:    []*Player{},
 	}
-	return valores
-}
-
-func (w *World) getItems() []Item {
-	valores := make([]Item, 0, len(w.Items))
-	for _, v := range w.Items {
-		if v != nil {
-			valores = append(valores, v) // Desreferenciar el puntero
+	for _, item := range w.Items {
+		switch item.(type) {
+		case *Character:
+			c, _ := (item).(*Character)
+			ret.Characters = append(ret.Characters, c)
+			if c.getPlayer() != nil {
+				ret.Players = append(ret.Players, c.getPlayer())
+			}
+		case *Coin:
+			c, _ := (item).(*Coin)
+			ret.Coins = append(ret.Coins, c)
 		}
 	}
-	return valores
+	return ret
 }
 
 func (w *World) processEvent(e WorldEvent) {
@@ -118,12 +131,25 @@ func (w *World) processEvent(e WorldEvent) {
 	case "add-point":
 		for _, t := range e.getTragets() {
 			switch t.(type) {
-			case *Player:
-				p, _ := t.(*Player)
-				p.Score += 10
+			case *Character:
+				c, _ := t.(*Character)
+				c.Score += 10
 			default:
 				break
 			}
 		}
 	}
+}
+
+func (w *World) getPlayer(id string) (*Player, bool) {
+	player, exists := w.Players[id]
+	return player, exists
+}
+
+func (w *World) getPlayers() []*Player {
+	valores := make([]*Player, 0, len(w.Players))
+	for _, v := range w.Players {
+		valores = append(valores, v)
+	}
+	return valores
 }

@@ -143,15 +143,17 @@ func (s *Server) getGameState() GameState {
 	s.worlds["0"].mu.RLock()
 	defer s.worlds["0"].mu.RUnlock()
 
+	worldData := s.worlds["0"].getWorldState()
+
 	playersData := make(map[string]interface{})
-	for id, player := range s.worlds["0"].Players {
-		playersData[id] = itemToJson(player)
+	for _, player := range worldData.Players {
+		playersData[player.getId()] = toJson(player)
 	}
 
 	itemsData := []interface{}{}
-	for _, item := range s.worlds["0"].getItems() {
+	for _, coin := range worldData.Coins {
 		//log.Println(item)
-		itemsData = append(itemsData, itemToJson(item))
+		itemsData = append(itemsData, toJson(coin))
 	}
 
 	r := GameState{
