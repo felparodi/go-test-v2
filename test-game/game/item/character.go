@@ -12,8 +12,8 @@ type Character struct {
 	oldPos   inter.Position
 	score    int
 	player   inter.Player
+	acctions []inter.Action
 }
-
 type CharacterEvent struct {
 	owner   *Character
 	name    string
@@ -39,6 +39,7 @@ func NewCharacter(id string, s inter.Size) inter.Character {
 		position: pos,
 		oldPos:   pos,
 		velocity: &Position{X: 0, Y: 0, Angle: 0},
+		acctions: []inter.Action{},
 		score:    0,
 	}
 }
@@ -122,6 +123,14 @@ func (c *Character) Update(deltaTime float64, s inter.Size) []inter.Event {
 		c.velocity.SetY(0)
 		events = append(events, &CharacterEvent{name: "limit-max-y", owner: c})
 	}
+	for _, action := range c.acctions {
+		switch action.GetName() {
+		case "shoot":
+			events = append(events, &CharacterEvent{name: "create-bullet", owner: c})
+		}
+	}
+	clear(c.acctions)
+	c.acctions = []inter.Action{}
 	return events
 }
 
@@ -155,4 +164,8 @@ func (c *Character) AddScore(score int) {
 
 func (c *Character) GetScore() int {
 	return c.score
+}
+
+func (c *Character) AddAction(a inter.Action) {
+	c.acctions = append(c.acctions, a)
 }

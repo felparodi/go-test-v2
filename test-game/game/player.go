@@ -108,6 +108,10 @@ func (player *Player) moveMessage(msg Message) {
 func (player *Player) actionMessage(msg Message) {
 	actionType := msg.Payload.(map[string]interface{})["action"].(string)
 	log.Printf("Jugador %s realiza acción: %s", player.id, actionType)
+	switch actionType {
+	case "z", "Z":
+		player.character.AddAction(&Action{name: "shoot"})
+	}
 }
 
 func (p *Player) handleMessage(msg Message) {
@@ -133,4 +137,16 @@ func (p *Player) GetCharacter() inter.Character {
 
 func (p *Player) CloseConnection() {
 	p.conn.Close()
+}
+
+type Action struct {
+	name string
+}
+
+func (a *Action) GetName() string {
+	return a.name
+}
+
+func (a *Action) GetData() interface{} {
+	return nil
 }

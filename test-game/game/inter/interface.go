@@ -24,6 +24,10 @@ type Coin interface {
 	Item
 }
 
+type Bullet interface {
+	Item
+}
+
 type Character interface {
 	Item
 	GetVelocity() Position
@@ -32,6 +36,7 @@ type Character interface {
 	Move(float64, float64)
 	AddScore(int)
 	GetScore() int
+	AddAction(Action)
 }
 
 type Event interface {
@@ -82,4 +87,9 @@ type WorldState interface {
 	GetCoins() []Coin
 	GetCharacters() []Character
 	GetPlayers() []Player
+}
+
+type Action interface {
+	GetName() string
+	GetData() interface{}
 }

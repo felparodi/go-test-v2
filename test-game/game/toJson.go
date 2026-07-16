@@ -14,17 +14,23 @@ type PlayerData struct {
 	Angle float64 `json:"angle"`
 }
 
-type CoinData struct {
-	Id string  `json:"playerId"`
-	X  float64 `json:"x"`
-	Y  float64 `json:"y"`
+type ItemData struct {
+	Id   string  `json:"id"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+	Type string  `json:"type"`
 }
 
 func toJson(i interface{}) interface{} {
 	switch i.(type) {
-	case inter.Coin:
-		c, _ := i.(inter.Coin)
-		return coinToJson(c)
+	case inter.Item:
+		it, _ := i.(inter.Coin)
+		switch it.(type) {
+		case inter.Bullet:
+			return itemToJson(it, "bullet")
+		case inter.Coin:
+			return itemToJson(it, "coin")
+		}
 	case inter.Player:
 		p, _ := i.(inter.Player)
 		return playerToJson(p)
@@ -46,10 +52,11 @@ func playerToJson(p inter.Player) PlayerData {
 	}
 }
 
-func coinToJson(c inter.Coin) CoinData {
-	return CoinData{
-		Id: c.GetId(),
-		X:  c.GetPosition().GetX(),
-		Y:  c.GetPosition().GetY(),
+func itemToJson(c inter.Item, t string) ItemData {
+	return ItemData{
+		Id:   c.GetId(),
+		X:    c.GetPosition().GetX(),
+		Y:    c.GetPosition().GetY(),
+		Type: t,
 	}
 }

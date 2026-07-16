@@ -1,4 +1,5 @@
 import CONFIG from './config.js';
+import BulletRender from './renders/bulletRender.js';
 import CoinRender from './renders/coinRender.js';
 import PlayerRender from './renders/playerRender.js';
 export default class Renderer {
@@ -98,7 +99,15 @@ export default class Renderer {
         
         // Dibujar items
         if (gameState.items) {
-            gameState.items.forEach(item => CoinRender.render(this.ctx, item));
+            gameState.items.forEach(item => {
+                if (item) {
+                    const { type } = item
+                    switch(type) {
+                        case "coin": CoinRender.render(this.ctx, item); break;
+                        case "bullet": BulletRender.render(this.ctx, item); break;
+                    }
+                }  
+            });
         }
         
         // Dibujar jugadores
