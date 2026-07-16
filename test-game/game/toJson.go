@@ -1,5 +1,9 @@
 package game
 
+import (
+	"juego-websocket/game/inter"
+)
+
 type PlayerData struct {
 	Id    string  `json:"playerId"`
 	X     float64 `json:"x"`
@@ -18,11 +22,11 @@ type CoinData struct {
 
 func toJson(i interface{}) interface{} {
 	switch i.(type) {
-	case *Coin:
-		c, _ := i.(*Coin)
+	case inter.Coin:
+		c, _ := i.(inter.Coin)
 		return coinToJson(c)
-	case *Player:
-		p, _ := i.(*Player)
+	case inter.Player:
+		p, _ := i.(inter.Player)
 		return playerToJson(p)
 	default:
 		break
@@ -30,22 +34,22 @@ func toJson(i interface{}) interface{} {
 	return nil
 }
 
-func playerToJson(p *Player) PlayerData {
+func playerToJson(p inter.Player) PlayerData {
 	return PlayerData{
-		Id:    p.ID,
-		X:     p.Character.Position.X,
-		Y:     p.Character.Position.Y,
-		Vx:    p.Character.Velocity.X,
-		Vy:    p.Character.Velocity.Y,
-		Score: p.Character.Score,
-		Angle: p.Character.Position.Angle,
+		Id:    p.GetId(),
+		X:     p.GetCharacter().GetPosition().GetX(),
+		Y:     p.GetCharacter().GetPosition().GetY(),
+		Vx:    p.GetCharacter().GetVelocity().GetX(),
+		Vy:    p.GetCharacter().GetVelocity().GetY(),
+		Score: p.GetCharacter().GetScore(),
+		Angle: p.GetCharacter().GetPosition().GetAngle(),
 	}
 }
 
-func coinToJson(c *Coin) CoinData {
+func coinToJson(c inter.Coin) CoinData {
 	return CoinData{
-		Id: c.ID,
-		X:  c.pos.X,
-		Y:  c.pos.Y,
+		Id: c.GetId(),
+		X:  c.GetPosition().GetX(),
+		Y:  c.GetPosition().GetY(),
 	}
 }

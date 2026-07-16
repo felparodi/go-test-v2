@@ -1,133 +1,160 @@
 package game
 
 import (
+	"juego-websocket/game/inter"
+	"juego-websocket/game/item"
 	"log"
 	"sync"
 )
 
 // Zona de juego con coordenadas
 type World struct {
-	Width   int
-	Height  int
-	Players map[string]*Player
-	Items   map[string]Item
-	Server  *Server
+	size    inter.Size
+	players map[string]inter.Player
+	items   map[string]inter.Item
+	server  inter.Server
 	mu      sync.RWMutex
 }
 
-type WorldState struct {
-	Coins      []*Coin
-	Characters []*Character
-	Players    []*Player
+type Size struct {
+	Height float64
+	Width  float64
 }
 
-func generateItems(cantItems int, w *World) []Item {
-	items := []Item{}
+func (s *Size) GetHeight() float64 {
+	return s.Height
+}
+
+func (s *Size) GetWidth() float64 {
+	return s.Width
+}
+
+type WorldState struct {
+	Coins      []inter.Coin
+	Characters []inter.Character
+	Players    []inter.Player
+}
+
+func (ws *WorldState) GetCoins() []inter.Coin {
+	return ws.Coins
+}
+
+func (ws *WorldState) GetCharacters() []inter.Character {
+	return ws.Characters
+}
+
+func (ws *WorldState) GetPlayers() []inter.Player {
+	return ws.Players
+}
+
+func generateItems(cantItems int, w *World) []inter.Item {
+	items := []inter.Item{}
 	// Generar items aleatorios en el mapa
 	for i := 0; i < cantItems; i++ {
-		c := NewCoin(i, w)
+		c := item.NewCoin(i, w.size)
 		items = append(items, c)
 	}
 	return items
 }
 
-func NewWorld(s *Server) *World {
+func NewWorld(s inter.Server) inter.World {
 	world := &World{
-		Width:   800,
-		Height:  600,
-		Items:   make(map[string]Item),
-		Players: make(map[string]*Player),
-		Server:  s,
+		size:    &Size{Width: 800, Height: 600},
+		items:   make(map[string]inter.Item),
+		players: make(map[string]inter.Player),
+		server:  s,
 	}
 	for _, item := range generateItems(20, world) {
-		world.Items[item.getId()] = item
+		world.items[item.GetId()] = item
 	}
 	return world
+}
+
+func (w *World) GetSize() inter.Size {
+	return w.size
 }
 
 // Actualizar el mundo (simulación de física)
 func (w *World) Update(deltaTime float64) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	events := []Event{}
-	for _, item := range w.Items {
-		events = append(events, item.update(deltaTime, w)...)
+	events := []inter.Event{}
+	// Actualizar items
+	for _, item := range w.items {
+		events = append(events, item.Update(deltaTime, w.size)...)
 	}
-
 	// Coliciones
-	for _, it1 := range w.Items {
-		for _, it2 := range w.Items {
-			if it1.getId() != it2.getId() {
-				events = append(events, it1.collition(it2, w)...)
+	// Mejorar con mayas se colizion
+	for _, it1 := range w.items {
+		for _, it2 := range w.items {
+			if it1.GetId() != it2.GetId() {
+				events = append(events, it1.Collition(it2)...)
 			}
 		}
 	}
 	// Event Loop
-
-	//Coliciones
 	for _, e := range events {
-		log.Println("Event", e.getEventName(), e.getOwner(), e.getTragets())
+		log.Println("Event", e.GetEventName(), e.GetOwner(), e.GetTragets())
 		w.processEvent(e)
 	}
-
 }
 
-func (w *World) addPlayer(p *Player) {
+func (w *World) AddPlayer(p inter.Player) {
 	w.mu.Lock()
-	w.Players[p.getId()] = p
-	w.Items[p.Character.getId()] = p.Character
+	w.players[p.GetId()] = p
+	w.items[p.GetCharacter().GetId()] = p.GetCharacter()
 	w.mu.Unlock()
 }
 
-func (w *World) removePlayer(p *Player) {
+func (w *World) RemovePlayer(p inter.Player) {
 	w.mu.Lock()
-	delete(w.Players, p.getId())
-	delete(w.Items, p.Character.getId())
+	delete(w.players, p.GetId())
+	delete(w.items, p.GetCharacter().GetId())
 	w.mu.Unlock()
 }
 
-func (w *World) removePlayerId(playerId string) {
+func (w *World) RemovePlayerId(playerId string) {
 	w.mu.Lock()
-	p, exits := w.Players[playerId]
-	delete(w.Players, playerId)
+	p, exits := w.players[playerId]
+	delete(w.players, playerId)
 	if exits {
-		delete(w.Items, p.Character.getId())
+		delete(w.items, p.GetCharacter().GetId())
 	}
 	w.mu.Unlock()
 }
 
-func (w *World) getWorldState() WorldState {
-	ret := WorldState{
-		Coins:      []*Coin{},
-		Characters: []*Character{},
-		Players:    []*Player{},
+func (w *World) GetWorldState() inter.WorldState {
+	ret := &WorldState{
+		Coins:      []inter.Coin{},
+		Characters: []inter.Character{},
+		Players:    []inter.Player{},
 	}
-	for _, item := range w.Items {
+	for _, item := range w.items {
 		switch item.(type) {
-		case *Character:
-			c, _ := (item).(*Character)
+		case inter.Character:
+			c, _ := (item).(inter.Character)
 			ret.Characters = append(ret.Characters, c)
-			if c.getPlayer() != nil {
-				ret.Players = append(ret.Players, c.getPlayer())
+			if c.GetPlayer() != nil {
+				ret.Players = append(ret.Players, c.GetPlayer())
 			}
-		case *Coin:
-			c, _ := (item).(*Coin)
+		case inter.Coin:
+			c, _ := (item).(inter.Coin)
 			ret.Coins = append(ret.Coins, c)
 		}
 	}
 	return ret
 }
 
-func (w *World) processEvent(e Event) {
-	switch e.getEventName() {
+func (w *World) processEvent(e inter.Event) {
+	switch e.GetEventName() {
 	case "move-item-random-pose":
-		e.getOwner().setPosition(getRandPosistion(w))
+		e.GetOwner().SetPosition(item.GetRandPosistion(w.size))
 	case "add-point":
-		for _, t := range e.getTragets() {
+		for _, t := range e.GetTragets() {
 			switch t.(type) {
-			case *Character:
-				c, _ := t.(*Character)
-				c.Score += 10
+			case inter.Character:
+				c, _ := t.(inter.Character)
+				c.AddScore(10)
 			default:
 				break
 			}
@@ -135,15 +162,23 @@ func (w *World) processEvent(e Event) {
 	}
 }
 
-func (w *World) getPlayer(id string) (*Player, bool) {
-	player, exists := w.Players[id]
+func (w *World) GetPlayer(id string) (inter.Player, bool) {
+	player, exists := w.players[id]
 	return player, exists
 }
 
-func (w *World) getPlayers() []*Player {
-	valores := make([]*Player, 0, len(w.Players))
-	for _, v := range w.Players {
+func (w *World) GetPlayers() []inter.Player {
+	valores := make([]inter.Player, 0, len(w.players))
+	for _, v := range w.players {
 		valores = append(valores, v)
 	}
 	return valores
+}
+
+func (w *World) RLock() {
+	w.mu.RLock()
+}
+
+func (w *World) RUnlock() {
+	w.mu.RUnlock()
 }

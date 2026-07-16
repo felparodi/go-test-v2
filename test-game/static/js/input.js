@@ -6,7 +6,7 @@ const MOVE_DOWN = ['ArrowDown', 'S', 's']
 const MOVE_RIGTH = ['ArrowRight', 'D', 'd']
 const MOVE_LEFT = ['ArrowLeft', 'A', 'a']
 const MOVE_BUTTON = [...MOVE_UP,...MOVE_DOWN,...MOVE_LEFT,...MOVE_RIGTH]
-const ACTION_BUTTON = ['b']
+const ACTION_BUTTON = ['b', 'B', 'f', 'F', 'r', 'R', 'z', 'Z', 'x', 'X', 'c', 'C', 'v', 'V']
 export default class InputManager {
     constructor() {
         this.keys = new Set();

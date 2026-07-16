@@ -1,6 +1,8 @@
 package game
 
 import (
+	"juego-websocket/game/inter"
+	"juego-websocket/game/item"
 	"log"
 	"sync"
 	"time"
@@ -9,12 +11,12 @@ import (
 )
 
 type Player struct {
-	ID          string
-	Character   *Character
-	Conn        *websocket.Conn
+	id          string
+	character   inter.Character
+	conn        *websocket.Conn
 	mu          sync.Mutex
-	world       *World
-	server      *Server
+	world       inter.World
+	server      inter.Server
 	rateLimiter *RateLimiter
 }
 
@@ -24,29 +26,29 @@ type RateLimiter struct {
 	mu         sync.Mutex
 }
 
-func NewPlayer(id string, conn *websocket.Conn, s *Server, w *World) *Player {
+func NewPlayer(id string, conn *websocket.Conn, s inter.Server, w inter.World) inter.Player {
 	ret := &Player{
-		ID:          id,
-		Character:   NewCharacter(id, w),
-		Conn:        conn,
+		id:          id,
+		character:   item.NewCharacter(id, w.GetSize()),
+		conn:        conn,
 		server:      s,
 		world:       w,
 		rateLimiter: &RateLimiter{},
 	}
-	ret.Character.setPlayer(ret)
+	ret.character.SetPlayer(ret)
 	return ret
 }
 
 func (p *Player) Send(message []byte) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.Conn.WriteMessage(websocket.TextMessage, message)
+	return p.conn.WriteMessage(websocket.TextMessage, message)
 }
 
 /*
 *	Que empiece a escucar al usuario
 **/
-func (p *Player) start() error {
+func (p *Player) Start() error {
 	return nil
 }
 
@@ -64,18 +66,18 @@ func (p *Player) checkRateLimit() bool {
 	return rl.count <= 60
 }
 
-func (p *Player) readMessages() {
+func (p *Player) ReadMessages() {
 	for {
 		var msg Message
-		err := p.Conn.ReadJSON(&msg)
+		err := p.conn.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("Error al leer mensaje de %s: %v", p.ID, err)
-			p.server.removePlayer(p.ID)
+			log.Printf("Error al leer mensaje de %s: %v", p.id, err)
+			p.server.RemovePlayerId(p.id)
 			return
 		}
 
 		if !p.checkRateLimit() {
-			log.Printf("Rate limit excedido para %s", p.ID)
+			log.Printf("Rate limit excedido para %s", p.id)
 			continue
 		}
 
@@ -85,12 +87,11 @@ func (p *Player) readMessages() {
 
 func (p *Player) initMessage(msg Message) {
 	data := msg.Payload.(map[string]interface{})
-	if id, ok := data["playerId"].(string); ok && id != p.ID {
+	if id, ok := data["playerId"].(string); ok && id != p.id {
 		p.mu.Lock()
-		p.world.removePlayer(p)
-		p.ID = id
-		p.Character.ID = id
-		p.world.addPlayer(p)
+		p.world.RemovePlayer(p)
+		p.id = id
+		p.world.AddPlayer(p)
 		p.mu.Unlock()
 		log.Printf("Jugador renombrado a %s", id)
 	}
@@ -101,12 +102,12 @@ func (player *Player) moveMessage(msg Message) {
 	data := msg.Payload.(map[string]interface{})
 	velocityX := data["velocityX"].(float64)
 	velocityY := data["velocityY"].(float64)
-	player.Character.move(velocityX, velocityY)
+	player.character.Move(velocityX, velocityY)
 }
 
 func (player *Player) actionMessage(msg Message) {
 	actionType := msg.Payload.(map[string]interface{})["action"].(string)
-	log.Printf("Jugador %s realiza acción: %s", player.ID, actionType)
+	log.Printf("Jugador %s realiza acción: %s", player.id, actionType)
 }
 
 func (p *Player) handleMessage(msg Message) {
@@ -118,10 +119,18 @@ func (p *Player) handleMessage(msg Message) {
 	case "action":
 		p.actionMessage(msg)
 	default:
-		log.Printf("Mensaje desconocido de %s: %s", p.ID, msg.Type)
+		log.Printf("Mensaje desconocido de %s: %s", p.id, msg.Type)
 	}
 }
 
-func (p *Player) getId() string {
-	return p.ID
+func (p *Player) GetId() string {
+	return p.id
+}
+
+func (p *Player) GetCharacter() inter.Character {
+	return p.character
+}
+
+func (p *Player) CloseConnection() {
+	p.conn.Close()
 }

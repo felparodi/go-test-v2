@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/json"
+	"juego-websocket/game/inter"
 	"log"
 	"net/http"
 	"sync"
@@ -11,7 +12,7 @@ import (
 )
 
 type Server struct {
-	worlds       map[string]*World
+	worlds       map[string]inter.World
 	upgrader     websocket.Upgrader
 	mu           sync.RWMutex
 	gameLoopDone chan bool
@@ -24,7 +25,7 @@ type GameState struct {
 	Items   []interface{}          `json:"items"`
 }
 
-func NewServer() *Server {
+func NewServer() inter.Server {
 	s := &Server{
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
@@ -36,11 +37,11 @@ func NewServer() *Server {
 		gameLoopDone:  make(chan bool),
 		broadcastChan: make(chan []byte, 100),
 	}
-	s.worlds = map[string]*World{"0": NewWorld(s)}
+	s.worlds = map[string]inter.World{"0": NewWorld(s)}
 	return s
 }
 
-func (s *Server) getWorldTo() *World {
+func (s *Server) getWorldTo() inter.World {
 	return s.worlds["0"]
 }
 
@@ -62,19 +63,19 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	player := NewPlayer(playerID, conn, s, world)
 
 	s.mu.Lock()
-	world.addPlayer(player)
+	world.AddPlayer(player)
 	s.mu.Unlock()
 
 	log.Printf("Jugador %s conectado", playerID)
 
 	s.sendGameState(player)
-	go player.readMessages()
+	go player.ReadMessages()
 
 	<-s.gameLoopDone
 }
 
 // @TODO Player word
-func (s *Server) getPlayerWorld(p *Player) *World {
+func (s *Server) getPlayerWorld(p *Player) inter.World {
 	return s.worlds["0"]
 }
 
@@ -93,11 +94,11 @@ func (s *Server) sendGameStateToAll() {
 	var wg sync.WaitGroup
 	for _, player := range s.getPlayers() {
 		wg.Add(1)
-		go func(p *Player) {
+		go func(p inter.Player) {
 			defer wg.Done()
 			err := p.Send(data)
 			if err != nil {
-				log.Printf("Error al enviar a %s: %v", p.ID, err)
+				log.Printf("Error al enviar a %s: %v", p.GetId(), err)
 			}
 		}(player)
 	}
@@ -140,18 +141,18 @@ func (s *Server) GameLoop() {
 
 // Obtener estado del juego incluyendo velocidades
 func (s *Server) getGameState() GameState {
-	s.worlds["0"].mu.RLock()
-	defer s.worlds["0"].mu.RUnlock()
+	s.worlds["0"].RLock()
+	defer s.worlds["0"].RUnlock()
 
-	worldData := s.worlds["0"].getWorldState()
+	worldData := s.worlds["0"].GetWorldState()
 
 	playersData := make(map[string]interface{})
-	for _, player := range worldData.Players {
-		playersData[player.getId()] = toJson(player)
+	for _, player := range worldData.GetPlayers() {
+		playersData[player.GetId()] = toJson(player)
 	}
 
 	itemsData := []interface{}{}
-	for _, coin := range worldData.Coins {
+	for _, coin := range worldData.GetCoins() {
 		//log.Println(item)
 		itemsData = append(itemsData, toJson(coin))
 	}
@@ -166,7 +167,7 @@ func (s *Server) getGameState() GameState {
 }
 
 // Enviar estado a un jugador específico
-func (s *Server) sendGameState(player *Player) {
+func (s *Server) sendGameState(player inter.Player) {
 	state := s.getGameState()
 	data, err := json.Marshal(state)
 	if err != nil {
@@ -177,14 +178,14 @@ func (s *Server) sendGameState(player *Player) {
 }
 
 // Eliminar jugador
-func (s *Server) removePlayer(id string) {
+func (s *Server) RemovePlayerId(id string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if player, exists := s.getPlayer(id); exists {
-		player.Conn.Close()
+		player.CloseConnection()
 
-		s.worlds["0"].removePlayerId(id)
+		s.worlds["0"].RemovePlayerId(id)
 
 		log.Printf("Jugador %s desconectado", id)
 	}
@@ -193,14 +194,14 @@ func (s *Server) removePlayer(id string) {
 /*
 *
  */
-func (s *Server) getPlayer(playerId string) (*Player, bool) {
-	return s.worlds["0"].getPlayer(playerId)
+func (s *Server) getPlayer(playerId string) (inter.Player, bool) {
+	return s.worlds["0"].GetPlayer(playerId)
 }
 
-func (s *Server) getPlayers() []*Player {
-	players := make([]*Player, 0)
+func (s *Server) getPlayers() []inter.Player {
+	players := make([]inter.Player, 0)
 	for _, word := range s.worlds {
-		players = append(players, word.getPlayers()...)
+		players = append(players, word.GetPlayers()...)
 	}
 	return players
 }
