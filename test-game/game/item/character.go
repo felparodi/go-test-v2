@@ -6,13 +6,14 @@ import (
 )
 
 type Character struct {
-	id       string
-	position inter.Position
-	velocity inter.Position
-	oldPos   inter.Position
-	score    int
-	player   inter.Player
-	acctions []inter.Action
+	id              string
+	position        inter.Position
+	velocity        inter.Position
+	oldPos          inter.Position
+	score           int
+	player          inter.Player
+	acctions        []inter.Action
+	acctionColdDown float64
 }
 type CharacterEvent struct {
 	owner   *Character
@@ -35,12 +36,13 @@ func (ce *CharacterEvent) GetTragets() []inter.Item {
 func NewCharacter(id string, s inter.Size) inter.Character {
 	pos := GetRandPosistion(s)
 	return &Character{
-		id:       id,
-		position: pos,
-		oldPos:   pos,
-		velocity: &Position{X: 0, Y: 0, Angle: 0},
-		acctions: []inter.Action{},
-		score:    0,
+		id:              id,
+		position:        pos,
+		oldPos:          pos,
+		velocity:        &Position{X: 0, Y: 0, Angle: 0},
+		acctions:        []inter.Action{},
+		acctionColdDown: 0,
+		score:           0,
 	}
 }
 
@@ -75,6 +77,7 @@ func (c *Character) Move(velocityX float64, velocityY float64) {
 func (c *Character) Update(deltaTime float64, s inter.Size) []inter.Event {
 	//Copio la posicion anterior
 	c.oldPos = c.position
+	c.acctionColdDown -= deltaTime
 	events := []inter.Event{}
 	const friction = 0.92
 	const minVelocity = 0.1
@@ -158,8 +161,8 @@ func (c *Character) GetColitonArea() []inter.ColitionaArea {
 	return []inter.ColitionaArea{}
 }
 
-func (c *Character) AddScore(score int) {
-	c.score += score
+func (c *Character) SetScore(score int) {
+	c.score = score
 }
 
 func (c *Character) GetScore() int {
@@ -167,5 +170,20 @@ func (c *Character) GetScore() int {
 }
 
 func (c *Character) AddAction(a inter.Action) {
-	c.acctions = append(c.acctions, a)
+	if c.acctionColdDown <= 0 {
+		c.acctions = append(c.acctions, a)
+		c.acctionColdDown = 1
+	}
+}
+
+func (c *Character) ProcessEvent(e inter.Event) {
+	switch e.GetEventName() {
+	case "add-points":
+		c.score += 10
+	case "remove-points":
+		c.score -= 3
+		if c.score < 0 {
+			c.score = 0
+		}
+	}
 }

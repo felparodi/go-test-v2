@@ -11,7 +11,7 @@ type Bullet struct {
 	id     string
 	pos    inter.Position
 	oldPos inter.Position
-	owner  inter.Character
+	owner  inter.Item
 	vector inter.Position
 }
 
@@ -45,16 +45,17 @@ func (b *Bullet) SetPosition(pos inter.Position) {
 	b.pos = pos
 }
 
-func NewBullet(owner inter.Character) inter.Bullet {
+func NewBullet(owner inter.Item) inter.Bullet {
 	angle := owner.GetPosition().GetAngle()
 	vector := &Position{
-		X:     math.Cos(angle) * 10,
-		Y:     math.Sin(angle) * 10,
+		X:     math.Cos(angle) * 100,
+		Y:     math.Sin(angle) * 100,
 		Angle: angle,
 	}
 	return &Bullet{
 		id:     fmt.Sprintf("Bullet_%s_%d", owner.GetId(), rand.Intn(9999999)),
-		pos:    owner.GetPosition(),
+		pos:    owner.GetPosition().Copy(),
+		owner:  owner,
 		vector: vector,
 	}
 }
@@ -66,7 +67,7 @@ func (b *Bullet) Collition(i inter.Item) []inter.Event {
 		case inter.Character:
 			if i.GetId() != b.owner.GetId() {
 				events = append(events,
-					&BulletEvent{name: "remove-point", owner: b, targets: []inter.Item{i}},
+					&BulletEvent{name: "remove-points", owner: b, targets: []inter.Item{i}},
 					&BulletEvent{name: "remove", owner: b},
 				)
 			}
@@ -96,4 +97,12 @@ func (b *Bullet) Update(deltaTime float64, s inter.Size) []inter.Event {
 
 func (b *Bullet) GetColitonArea() []inter.ColitionaArea {
 	return []inter.ColitionaArea{}
+}
+
+func (b *Bullet) GetOwner() inter.Item {
+	return b.owner
+}
+
+func (b *Bullet) ProcessEvent(e inter.Event) {
+
 }

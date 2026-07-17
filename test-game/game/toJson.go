@@ -24,7 +24,7 @@ type ItemData struct {
 func toJson(i interface{}) interface{} {
 	switch i.(type) {
 	case inter.Item:
-		it, _ := i.(inter.Coin)
+		it, _ := i.(inter.Item)
 		switch it.(type) {
 		case inter.Bullet:
 			return itemToJson(it, "bullet")

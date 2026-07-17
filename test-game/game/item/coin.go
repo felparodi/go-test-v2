@@ -53,15 +53,8 @@ func (c *Coin) Collition(i inter.Item) []inter.Event {
 		switch i.(type) {
 		case *Character:
 			events = append(events,
-				&CoinEvent{
-					name:    "add-point",
-					owner:   c,
-					targets: []inter.Item{i},
-				},
-				&CoinEvent{
-					name:  "move-item-random-pose",
-					owner: c,
-				},
+				&CoinEvent{name: "add-points", owner: c, targets: []inter.Item{i}},
+				&CoinEvent{name: "move-item-random-pose", owner: c},
 			)
 		}
 	}
@@ -81,4 +74,8 @@ func (c *Coin) Update(_ float64, _ inter.Size) []inter.Event {
 
 func (c *Coin) GetColitonArea() []inter.ColitionaArea {
 	return []inter.ColitionaArea{}
+}
+
+func (c *Coin) ProcessEvent(e inter.Event) {
+
 }

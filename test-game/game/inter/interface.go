@@ -18,6 +18,7 @@ type Item interface {
 	Update(float64, Size) []Event
 	Collition(Item) []Event
 	GetColitonArea() []ColitionaArea
+	ProcessEvent(Event)
 }
 
 type Coin interface {
@@ -26,6 +27,7 @@ type Coin interface {
 
 type Bullet interface {
 	Item
+	GetOwner() Item
 }
 
 type Character interface {
@@ -34,7 +36,7 @@ type Character interface {
 	GetPlayer() Player
 	SetPlayer(Player)
 	Move(float64, float64)
-	AddScore(int)
+	SetScore(int)
 	GetScore() int
 	AddAction(Action)
 }
@@ -53,6 +55,7 @@ type ColitionaArea interface {
 type Size interface {
 	GetHeight() float64
 	GetWidth() float64
+	Copy() Size
 }
 
 type Position interface {
@@ -62,6 +65,7 @@ type Position interface {
 	SetX(float64)
 	SetY(float64)
 	SetAngle(float64)
+	Copy() Position
 }
 
 type World interface {

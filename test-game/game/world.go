@@ -29,6 +29,13 @@ func (s *Size) GetWidth() float64 {
 	return s.Width
 }
 
+func (s *Size) Copy() inter.Size {
+	return &Size{
+		Height: s.Height,
+		Width:  s.Width,
+	}
+}
+
 type WorldState struct {
 	Coins      []inter.Coin
 	Characters []inter.Character
@@ -64,7 +71,7 @@ func NewWorld(s inter.Server) inter.World {
 		players: make(map[string]inter.Player),
 		server:  s,
 	}
-	for _, item := range generateItems(20, world) {
+	for _, item := range generateItems(10, world) {
 		world.items[item.GetId()] = item
 	}
 	return world
@@ -149,15 +156,15 @@ func (w *World) processEvent(e inter.Event) {
 	switch e.GetEventName() {
 	case "move-item-random-pose":
 		e.GetOwner().SetPosition(item.GetRandPosistion(w.size))
-	case "add-point":
+	case "remove":
+		delete(w.items, e.GetOwner().GetId())
+	case "create-bullet":
+		bullet := item.NewBullet(e.GetOwner())
+		w.items[bullet.GetId()] = bullet
+	}
+	if e.GetTragets() != nil {
 		for _, t := range e.GetTragets() {
-			switch t.(type) {
-			case inter.Character:
-				c, _ := t.(inter.Character)
-				c.AddScore(10)
-			default:
-				break
-			}
+			t.ProcessEvent(e)
 		}
 	}
 }

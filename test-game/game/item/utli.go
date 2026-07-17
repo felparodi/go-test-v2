@@ -35,6 +35,14 @@ func (p *Position) SetAngle(angle float64) {
 	p.Angle = angle
 }
 
+func (p *Position) Copy() inter.Position {
+	return &Position{
+		X:     p.X,
+		Y:     p.Y,
+		Angle: p.Angle,
+	}
+}
+
 func GetRandPosistion(s inter.Size) inter.Position {
 	return &Position{
 		X:     float64(rand.Intn(int(s.GetWidth()))),
