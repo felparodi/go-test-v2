@@ -34,5 +34,15 @@ export default class CoinRender {
         ctx.lineWidth = 1;
         ctx.stroke();
         ctx.shadowBlur = 0;
+        ctx.save();
+        ctx.shadowBlur = 0;
+        
+        // Nombre del jugador (arriba)
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 11px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        const displayName = item.id.substring(0, 8);
+        ctx.fillText(displayName, x, y);
+        ctx.restore()
     }
 }

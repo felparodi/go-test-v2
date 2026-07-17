@@ -79,3 +79,11 @@ func (c *Coin) GetColitonArea() []inter.ColitionaArea {
 func (c *Coin) ProcessEvent(e inter.Event) {
 
 }
+
+func (c *Coin) GetPoint() int {
+	return 10
+}
+
+func (c *Coin) SetPoint(int) {
+
+}

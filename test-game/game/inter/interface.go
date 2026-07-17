@@ -4,6 +4,7 @@ import "net/http"
 
 type Player interface {
 	CharacterControler
+	SetId(string)
 	Send(message []byte) error
 }
 
@@ -19,6 +20,8 @@ type Item interface {
 
 type Coin interface {
 	Item
+	SetPoint(int)
+	GetPoint() int
 }
 
 type Bullet interface {
@@ -75,6 +78,7 @@ type World interface {
 	GetSize() Size
 	RemovePlayer(Player)
 	RemovePlayerId(string)
+	RenamePlayer(string, string)
 	AddPlayer(Player)
 	GetPlayer(string) (Player, bool)
 	GetPlayers() []Player
@@ -82,6 +86,7 @@ type World interface {
 	RLock()
 	RUnlock()
 	GetWorldState() WorldState
+	GetCoins() []Coin
 }
 
 type Server interface {
@@ -91,7 +96,7 @@ type Server interface {
 }
 
 type WorldState interface {
-	GetCoins() []Coin
+	GetItems() []Item
 	GetCharacters() []Character
 	GetPlayers() []Player
 }

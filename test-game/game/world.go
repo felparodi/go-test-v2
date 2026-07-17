@@ -5,6 +5,7 @@ import (
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
 	"log"
+	"math/rand"
 	"sync"
 )
 
@@ -38,13 +39,13 @@ func (s *Size) Copy() inter.Size {
 }
 
 type WorldState struct {
-	Coins      []inter.Coin
+	Items      []inter.Item
 	Characters []inter.Character
 	Players    []inter.Player
 }
 
-func (ws *WorldState) GetCoins() []inter.Coin {
-	return ws.Coins
+func (ws *WorldState) GetItems() []inter.Item {
+	return ws.Items
 }
 
 func (ws *WorldState) GetCharacters() []inter.Character {
@@ -68,8 +69,15 @@ func generateCoins(cantItems int, w inter.World) []inter.Item {
 func generateNPC(cantItems int, s inter.Server, w inter.World) []inter.Item {
 	items := []inter.Item{}
 	// Generar items aleatorios en el mapa
-	for i := 0; i < cantItems; i++ {
+	basic := rand.Intn(cantItems + 1)
+	for i := 0; i < basic; i++ {
 		ia := ia.NewBasicIA(i, s, w)
+		go ia.Start()
+		items = append(items, ia.GetCharacter())
+	}
+	greed := rand.Intn(cantItems - basic + 1)
+	for i := 0; i < greed; i++ {
+		ia := ia.NewGreedIA(1, s, w)
 		go ia.Start()
 		items = append(items, ia.GetCharacter())
 	}
@@ -83,10 +91,10 @@ func NewWorld(s inter.Server) inter.World {
 		players: make(map[string]inter.Player),
 		server:  s,
 	}
-	for _, item := range generateCoins(10, world) {
+	for _, item := range generateCoins(0, world) {
 		world.items[item.GetId()] = item
 	}
-	for _, item := range generateNPC(5, world.server, world) {
+	for _, item := range generateNPC(0, world.server, world) {
 		world.items[item.GetId()] = item
 	}
 	return world
@@ -123,16 +131,16 @@ func (w *World) Update(deltaTime float64) {
 
 func (w *World) AddPlayer(p inter.Player) {
 	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.players[p.GetId()] = p
 	w.items[p.GetCharacter().GetId()] = p.GetCharacter()
-	w.mu.Unlock()
 }
 
 func (w *World) RemovePlayer(p inter.Player) {
 	w.mu.Lock()
+	defer w.mu.Unlock()
 	delete(w.players, p.GetId())
 	delete(w.items, p.GetCharacter().GetId())
-	w.mu.Unlock()
 }
 
 func (w *World) RemovePlayerId(playerId string) {
@@ -145,9 +153,33 @@ func (w *World) RemovePlayerId(playerId string) {
 	w.mu.Unlock()
 }
 
+func (w *World) RenamePlayer(oldName string, newName string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	player, exist := w.players[oldName]
+	if exist {
+		player.SetId(newName)
+		delete(w.players, oldName)
+		w.players[newName] = player
+	}
+
+}
+
+func (w *World) GetCoins() []inter.Coin {
+	ret := []inter.Coin{}
+	for _, item := range w.items {
+		switch item.(type) {
+		case inter.Coin:
+			c, _ := (item).(inter.Coin)
+			ret = append(ret, c)
+		}
+	}
+	return ret
+}
+
 func (w *World) GetWorldState() inter.WorldState {
 	ret := &WorldState{
-		Coins:      []inter.Coin{},
+		Items:      []inter.Item{},
 		Characters: []inter.Character{},
 		Players:    []inter.Player{},
 	}
@@ -156,9 +188,9 @@ func (w *World) GetWorldState() inter.WorldState {
 		case inter.Character:
 			c, _ := (item).(inter.Character)
 			ret.Characters = append(ret.Characters, c)
-		case inter.Coin:
-			c, _ := (item).(inter.Coin)
-			ret.Coins = append(ret.Coins, c)
+		case inter.Item:
+			c, _ := (item).(inter.Item)
+			ret.Items = append(ret.Items, c)
 		}
 	}
 	for _, player := range w.players {

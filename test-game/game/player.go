@@ -27,16 +27,14 @@ type RateLimiter struct {
 }
 
 func NewPlayer(id string, conn *websocket.Conn, s inter.Server, w inter.World) inter.Player {
-	ret := &Player{
+	log.Println("New Player", id)
+	return &Player{
 		id:          id,
-		character:   item.NewCharacter(id, w.GetSize()),
 		conn:        conn,
 		server:      s,
 		world:       w,
 		rateLimiter: &RateLimiter{},
 	}
-	ret.character.SetControler(ret)
-	return ret
 }
 
 func (p *Player) Send(message []byte) error {
@@ -89,11 +87,7 @@ func (p *Player) readMessages() {
 func (p *Player) initMessage(msg Message) {
 	data := msg.Payload.(map[string]interface{})
 	if id, ok := data["playerId"].(string); ok && id != p.id {
-		p.mu.Lock()
-		p.world.RemovePlayer(p)
-		p.id = id
-		p.world.AddPlayer(p)
-		p.mu.Unlock()
+		p.world.RenamePlayer(p.id, id)
 		log.Printf("Jugador renombrado a %s", id)
 	}
 }
@@ -132,7 +126,17 @@ func (p *Player) GetId() string {
 	return p.id
 }
 
+func (p *Player) SetId(id string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.id = id
+}
+
 func (p *Player) GetCharacter() inter.Character {
+	if p.character == nil {
+		p.character = item.NewCharacter(p.world.GetSize())
+		p.character.SetControler(p)
+	}
 	return p.character
 }
 

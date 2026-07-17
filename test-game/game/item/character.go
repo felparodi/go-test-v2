@@ -1,8 +1,10 @@
 package item
 
 import (
+	"fmt"
 	"juego-websocket/game/inter"
 	"math"
+	"math/rand"
 )
 
 type Character struct {
@@ -33,10 +35,10 @@ func (ce *CharacterEvent) GetTragets() []inter.Item {
 	return ce.targets
 }
 
-func NewCharacter(id string, s inter.Size) inter.Character {
+func NewCharacter(s inter.Size) inter.Character {
 	pos := GetRandPosistion(s)
 	return &Character{
-		id:              id,
+		id:              fmt.Sprintf("Character_%d", rand.Intn(9999999)),
 		position:        pos,
 		oldPos:          pos,
 		velocity:        &Position{X: 0, Y: 0, Angle: 0},

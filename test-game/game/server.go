@@ -147,9 +147,9 @@ func (s *Server) getGameState() GameState {
 	}
 
 	itemsData := []interface{}{}
-	for _, coin := range worldData.GetCoins() {
+	for _, item := range worldData.GetItems() {
 		//log.Println(item)
-		itemsData = append(itemsData, toJson(coin))
+		itemsData = append(itemsData, toJson(item))
 	}
 
 	r := GameState{
