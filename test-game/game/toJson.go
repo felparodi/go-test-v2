@@ -4,7 +4,7 @@ import (
 	"juego-websocket/game/inter"
 )
 
-type PlayerData struct {
+type CharacterData struct {
 	Id    string  `json:"playerId"`
 	X     float64 `json:"x"`
 	Y     float64 `json:"y"`
@@ -26,6 +26,9 @@ func toJson(i interface{}) interface{} {
 	case inter.Item:
 		it, _ := i.(inter.Item)
 		switch it.(type) {
+		case inter.Character:
+			c, _ := it.(inter.Character)
+			return characterToJson(c)
 		case inter.Bullet:
 			return itemToJson(it, "bullet")
 		case inter.Coin:
@@ -40,8 +43,8 @@ func toJson(i interface{}) interface{} {
 	return nil
 }
 
-func playerToJson(p inter.Player) PlayerData {
-	return PlayerData{
+func playerToJson(p inter.Player) CharacterData {
+	return CharacterData{
 		Id:    p.GetId(),
 		X:     p.GetCharacter().GetPosition().GetX(),
 		Y:     p.GetCharacter().GetPosition().GetY(),
@@ -49,6 +52,18 @@ func playerToJson(p inter.Player) PlayerData {
 		Vy:    p.GetCharacter().GetVelocity().GetY(),
 		Score: p.GetCharacter().GetScore(),
 		Angle: p.GetCharacter().GetPosition().GetAngle(),
+	}
+}
+
+func characterToJson(c inter.Character) CharacterData {
+	return CharacterData{
+		Id:    c.GetControler().GetId(),
+		X:     c.GetPosition().GetX(),
+		Y:     c.GetPosition().GetY(),
+		Vx:    c.GetVelocity().GetX(),
+		Vy:    c.GetVelocity().GetY(),
+		Score: c.GetScore(),
+		Angle: c.GetPosition().GetAngle(),
 	}
 }
 

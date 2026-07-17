@@ -11,7 +11,7 @@ type Character struct {
 	velocity        inter.Position
 	oldPos          inter.Position
 	score           int
-	player          inter.Player
+	controler       inter.CharacterControler
 	acctions        []inter.Action
 	acctionColdDown float64
 }
@@ -46,12 +46,12 @@ func NewCharacter(id string, s inter.Size) inter.Character {
 	}
 }
 
-func (c *Character) SetPlayer(p inter.Player) {
-	c.player = p
+func (c *Character) SetControler(p inter.CharacterControler) {
+	c.controler = p
 }
 
-func (c *Character) GetPlayer() inter.Player {
-	return c.player
+func (c *Character) GetControler() inter.CharacterControler {
+	return c.controler
 }
 
 func (c *Character) Move(velocityX float64, velocityY float64) {

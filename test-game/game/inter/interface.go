@@ -3,12 +3,8 @@ package inter
 import "net/http"
 
 type Player interface {
-	Start() error
+	CharacterControler
 	Send(message []byte) error
-	ReadMessages()
-	GetId() string
-	GetCharacter() Character
-	CloseConnection()
 }
 
 type Item interface {
@@ -30,15 +26,22 @@ type Bullet interface {
 	GetOwner() Item
 }
 
+type CharacterControler interface {
+	GetId() string
+	GetCharacter() Character
+	Start() error
+	End() error
+}
+
 type Character interface {
 	Item
 	GetVelocity() Position
-	GetPlayer() Player
-	SetPlayer(Player)
 	Move(float64, float64)
 	SetScore(int)
 	GetScore() int
 	AddAction(Action)
+	SetControler(CharacterControler)
+	GetControler() CharacterControler
 }
 
 type Event interface {

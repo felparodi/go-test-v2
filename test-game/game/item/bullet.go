@@ -47,9 +47,14 @@ func (b *Bullet) SetPosition(pos inter.Position) {
 
 func NewBullet(owner inter.Item) inter.Bullet {
 	angle := owner.GetPosition().GetAngle()
+	return NewBulletAngle(owner, angle)
+}
+
+func NewBulletAngle(owner inter.Item, angle float64) inter.Bullet {
+	module := float64(150)
 	vector := &Position{
-		X:     math.Cos(angle) * 100,
-		Y:     math.Sin(angle) * 100,
+		X:     math.Cos(angle) * module,
+		Y:     math.Sin(angle) * module,
 		Angle: angle,
 	}
 	return &Bullet{

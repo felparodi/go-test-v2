@@ -35,7 +35,7 @@ func NewPlayer(id string, conn *websocket.Conn, s inter.Server, w inter.World) i
 		world:       w,
 		rateLimiter: &RateLimiter{},
 	}
-	ret.character.SetPlayer(ret)
+	ret.character.SetControler(ret)
 	return ret
 }
 
@@ -49,6 +49,7 @@ func (p *Player) Send(message []byte) error {
 *	Que empiece a escucar al usuario
 **/
 func (p *Player) Start() error {
+	p.readMessages()
 	return nil
 }
 
@@ -66,7 +67,7 @@ func (p *Player) checkRateLimit() bool {
 	return rl.count <= 60
 }
 
-func (p *Player) ReadMessages() {
+func (p *Player) readMessages() {
 	for {
 		var msg Message
 		err := p.conn.ReadJSON(&msg)
@@ -135,8 +136,8 @@ func (p *Player) GetCharacter() inter.Character {
 	return p.character
 }
 
-func (p *Player) CloseConnection() {
-	p.conn.Close()
+func (p *Player) End() error {
+	return p.conn.Close()
 }
 
 type Action struct {

@@ -21,8 +21,8 @@ type Server struct {
 }
 
 type GameState struct {
-	Players map[string]interface{} `json:"players"`
-	Items   []interface{}          `json:"items"`
+	CharacterData map[string]interface{} `json:"players"`
+	Items         []interface{}          `json:"items"`
 }
 
 func NewServer() inter.Server {
@@ -69,14 +69,9 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Jugador %s conectado", playerID)
 
 	s.sendGameState(player)
-	go player.ReadMessages()
+	go player.Start()
 
 	<-s.gameLoopDone
-}
-
-// @TODO Player word
-func (s *Server) getPlayerWorld(p *Player) inter.World {
-	return s.worlds["0"]
 }
 
 // Enviar estado del juego con optimización de broadcast
@@ -147,8 +142,8 @@ func (s *Server) getGameState() GameState {
 	worldData := s.worlds["0"].GetWorldState()
 
 	playersData := make(map[string]interface{})
-	for _, player := range worldData.GetPlayers() {
-		playersData[player.GetId()] = toJson(player)
+	for _, player := range worldData.GetCharacters() {
+		playersData[player.GetControler().GetId()] = toJson(player)
 	}
 
 	itemsData := []interface{}{}
@@ -158,8 +153,8 @@ func (s *Server) getGameState() GameState {
 	}
 
 	r := GameState{
-		Players: playersData,
-		Items:   itemsData,
+		CharacterData: playersData,
+		Items:         itemsData,
 	}
 
 	//log.Println(r)
@@ -183,7 +178,7 @@ func (s *Server) RemovePlayerId(id string) {
 	defer s.mu.Unlock()
 
 	if player, exists := s.getPlayer(id); exists {
-		player.CloseConnection()
+		player.End()
 
 		s.worlds["0"].RemovePlayerId(id)
 

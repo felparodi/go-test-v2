@@ -1,6 +1,7 @@
 package game
 
 import (
+	"juego-websocket/game/ia"
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
 	"log"
@@ -54,12 +55,23 @@ func (ws *WorldState) GetPlayers() []inter.Player {
 	return ws.Players
 }
 
-func generateItems(cantItems int, w *World) []inter.Item {
+func generateCoins(cantItems int, w inter.World) []inter.Item {
 	items := []inter.Item{}
 	// Generar items aleatorios en el mapa
 	for i := 0; i < cantItems; i++ {
-		c := item.NewCoin(i, w.size)
+		c := item.NewCoin(i, w.GetSize())
 		items = append(items, c)
+	}
+	return items
+}
+
+func generateNPC(cantItems int, s inter.Server, w inter.World) []inter.Item {
+	items := []inter.Item{}
+	// Generar items aleatorios en el mapa
+	for i := 0; i < cantItems; i++ {
+		ia := ia.NewBasicIA(i, s, w)
+		go ia.Start()
+		items = append(items, ia.GetCharacter())
 	}
 	return items
 }
@@ -71,7 +83,10 @@ func NewWorld(s inter.Server) inter.World {
 		players: make(map[string]inter.Player),
 		server:  s,
 	}
-	for _, item := range generateItems(10, world) {
+	for _, item := range generateCoins(10, world) {
+		world.items[item.GetId()] = item
+	}
+	for _, item := range generateNPC(5, world.server, world) {
 		world.items[item.GetId()] = item
 	}
 	return world
@@ -141,13 +156,13 @@ func (w *World) GetWorldState() inter.WorldState {
 		case inter.Character:
 			c, _ := (item).(inter.Character)
 			ret.Characters = append(ret.Characters, c)
-			if c.GetPlayer() != nil {
-				ret.Players = append(ret.Players, c.GetPlayer())
-			}
 		case inter.Coin:
 			c, _ := (item).(inter.Coin)
 			ret.Coins = append(ret.Coins, c)
 		}
+	}
+	for _, player := range w.players {
+		ret.Players = append(ret.Players, player)
 	}
 	return ret
 }
