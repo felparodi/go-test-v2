@@ -43,7 +43,7 @@ func (ia *BasicIA) liveing() {
 	for ia.live {
 		strategy := ia.strategy(ia)
 		for {
-			time.Sleep(6000)
+			time.Sleep(10000000)
 			move := <-strategy
 			if move != nil {
 				ia.character.Move(move.X*100, move.Y*100)

@@ -22,13 +22,13 @@ func NewDummyIA(id int, a inter.Area) IA {
 func dummyStragey(ia IA) <-chan *Move {
 	canal := make(chan *Move)
 	go func() {
-		moveTime := rand.Intn(150) * 10
+		moveTime := rand.Intn(15) * 10
 		x, y := RandomDirection()
 		actions := []*Action{}
 		for t := 0; t < moveTime; t++ {
 			position := ia.GetCharacter().GetPosition()
 			area := ia.GetArea()
-			x, y := size.NormalizeMove(x, y, position, area.GetSize())
+			x, y := size.NormalizeMove(x*5, y*5, position, area.GetSize())
 			if rand.Intn(10) > 7 {
 				actions = append(actions, &Action{name: "shoot"})
 			}

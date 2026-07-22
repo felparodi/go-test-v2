@@ -17,7 +17,7 @@ func NewWorldArea(s inter.Server) inter.Area {
 	for _, item := range GenerateCoins(15, size) {
 		world.items[item.GetId()] = item
 	}
-	for _, item := range GenerateNPC(1, world) {
+	for _, item := range GenerateNPC(5, world) {
 		world.items[item.GetId()] = item
 	}
 	return world

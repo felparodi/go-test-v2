@@ -42,7 +42,7 @@ func (c *Character) GetControler() inter.CharacterControler {
 
 func (c *Character) Move(velocityX float64, velocityY float64) {
 	// Limitar velocidad máxima
-	maxSpeed := 250.0
+	maxSpeed := 100.0
 	speed := math.Sqrt(velocityX*velocityX + velocityY*velocityY)
 	if speed > maxSpeed {
 		scale := maxSpeed / speed
