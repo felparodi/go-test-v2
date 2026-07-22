@@ -50,7 +50,9 @@ func (p *Player) Send(message []byte) error {
 *	Que empiece a escucar al usuario
 **/
 func (p *Player) Start() (chan bool, error) {
-	p.readMessages()
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	go p.readMessages()
 	return p.activeChannel, nil
 }
 
@@ -74,7 +76,8 @@ func (p *Player) readMessages() {
 		err := p.conn.ReadJSON(&msg)
 		if err != nil {
 			log.Printf("Error al leer mensaje de %s: %v", p.id, err)
-			p.server.RemovePlayerId(p.id)
+			p.activeChannel <- false
+			//p.server.RemovePlayerId(p.id)
 			return
 		}
 
@@ -146,6 +149,9 @@ func (p *Player) GetCharacter() inter.Character {
 }
 
 func (p *Player) Stop() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	defer func() { p.activeChannel <- false }()
 	return p.conn.Close()
 }
 

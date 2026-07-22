@@ -55,3 +55,19 @@ func (s *BasicSize) Copy() inter.Size {
 		Padding: s.Padding,
 	}
 }
+
+func NormalizeMove(x, y float64, pos inter.Position, size inter.Size) (float64, float64) {
+	if pos.GetX()+x < size.GetMinWidth() {
+		x = 0
+	}
+	if pos.GetY()+y < size.GetMinHeight() {
+		y = 0
+	}
+	if pos.GetX()+x > size.GetMaxWidth() {
+		x = 0
+	}
+	if pos.GetY()+y > size.GetMaxHeight() {
+		y = 0
+	}
+	return x, y
+}

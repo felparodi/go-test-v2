@@ -5,6 +5,7 @@ import (
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
 	"juego-websocket/game/position"
+	"juego-websocket/game/size"
 	"math"
 	"math/rand"
 )
@@ -41,7 +42,7 @@ func greadyStrategy(ia IA) <-chan *Move {
 			angle := angleToNearestMultipleOf45(position, coin.GetPosition())
 			x := math.Cos(angle)
 			y := math.Sin(angle)
-			x, y = NormalizeMove(x, y, position, area)
+			x, y = size.NormalizeMove(x, y, position, area.GetSize())
 			canal <- &Move{
 				X: x,
 				Y: y,

@@ -5,6 +5,7 @@ import (
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
 	"juego-websocket/game/position"
+	"juego-websocket/game/size"
 	"math/rand"
 )
 
@@ -27,7 +28,7 @@ func dummyStragey(ia IA) <-chan *Move {
 		for t := 0; t < moveTime; t++ {
 			position := ia.GetCharacter().GetPosition()
 			area := ia.GetArea()
-			x, y := NormalizeMove(x, y, position, area)
+			x, y := size.NormalizeMove(x, y, position, area.GetSize())
 			if rand.Intn(10) > 7 {
 				actions = append(actions, &Action{name: "shoot"})
 			}

@@ -69,10 +69,17 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	s.game.AddPlayer(player)
 	log.Printf("Jugador %s conectado", playerID)
 	s.sendGameState(player)
-
-	go player.Start()
-
-	<-s.gameLoopDone
+	activeplayer, _ := player.Start()
+	for {
+		select {
+		case act := <-activeplayer:
+			if !act {
+				go s.RemovePlayerId(player.GetId())
+			}
+		case <-s.gameLoopDone:
+			return
+		}
+	}
 }
 
 // Enviar estado del juego con optimización de broadcast // No es un broadcas puro ya que se los envia uno a uno
@@ -192,12 +199,16 @@ func (s *Server) sendGameState(player inter.Player) {
 
 // Eliminar jugador
 func (s *Server) RemovePlayerId(id string) error {
+	log.Printf("Jugador %s desconectado", id)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if player, exists := s.game.GetPlayer(id); exists {
+		log.Printf("Jugador %s desconectado", id)
 		player.Stop()
+		log.Printf("Jugador %s desconectado", id)
 		s.game.RemovePlayerId(id)
 		log.Printf("Jugador %s desconectado", id)
 	}
+	log.Printf("Jugador %s desconectado", id)
 	return nil
 }
