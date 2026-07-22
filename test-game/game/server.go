@@ -65,14 +65,14 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		playerID = conn.RemoteAddr().String()
 	}
 
-	player := player.NewPlayer(playerID, conn, s, s.game)
+	player := player.NewPlayer(playerID, conn, s.game)
 	s.game.AddPlayer(player)
 	log.Printf("Jugador %s conectado", playerID)
 	s.sendGameState(player)
-	activeplayer, _ := player.Start()
+	active, _ := player.Start()
 	for {
 		select {
-		case act := <-activeplayer:
+		case act := <-active:
 			if !act {
 				go s.RemovePlayerId(player.GetId())
 			}

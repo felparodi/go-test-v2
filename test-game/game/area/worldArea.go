@@ -10,7 +10,7 @@ type WorldArea struct {
 }
 
 func NewWorldArea(s inter.Server) inter.Area {
-	size := size.NewSize(800, 600)
+	size := size.NewSize(600, 800)
 	world := &WorldArea{
 		BasicArea: newBasicArea(s, size),
 	}

@@ -17,7 +17,6 @@ type Player struct {
 	conn          *websocket.Conn
 	mu            sync.Mutex
 	game          inter.Game
-	server        inter.Server
 	rateLimiter   *RateLimiter
 	activeChannel chan bool
 }
@@ -28,15 +27,14 @@ type RateLimiter struct {
 	mu         sync.Mutex
 }
 
-func NewPlayer(id string, conn *websocket.Conn, s inter.Server, g inter.Game) inter.Player {
+func NewPlayer(id string, conn *websocket.Conn, g inter.Game) inter.Player {
 	log.Println("New Player", id)
 	return &Player{
 		id:            id,
 		conn:          conn,
-		server:        s,
 		game:          g,
 		rateLimiter:   &RateLimiter{},
-		activeChannel: make(chan bool),
+		activeChannel: make(chan bool, 1),
 	}
 }
 
@@ -76,8 +74,7 @@ func (p *Player) readMessages() {
 		err := p.conn.ReadJSON(&msg)
 		if err != nil {
 			log.Printf("Error al leer mensaje de %s: %v", p.id, err)
-			p.activeChannel <- false
-			//p.server.RemovePlayerId(p.id)
+			p.stop()
 			return
 		}
 
@@ -151,7 +148,14 @@ func (p *Player) GetCharacter() inter.Character {
 func (p *Player) Stop() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	defer func() { p.activeChannel <- false }()
+	return p.stop()
+}
+
+func (p *Player) stop() error {
+	select {
+	case p.activeChannel <- false:
+	default:
+	}
 	return p.conn.Close()
 }
 
