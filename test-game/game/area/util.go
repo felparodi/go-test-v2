@@ -4,6 +4,7 @@ import (
 	"juego-websocket/game/ia"
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
+	"log"
 	"math/rand"
 )
 
@@ -20,16 +21,18 @@ func GenerateCoins(cantItems int, s inter.Size) []inter.Item {
 func GenerateNPC(cantItems int, a inter.Area) []inter.Item {
 	items := []inter.Item{}
 	// Generar items aleatorios en el mapa
-	basic := rand.Intn(cantItems + 1)
-	for i := 0; i < basic; i++ {
+	dummy := rand.Intn(cantItems)
+	log.Printf("Se crean %d Dummy NPC", dummy)
+	for i := 0; i < dummy; i++ {
 		ia := ia.NewDummyIA(i, a)
-		go ia.Start()
+		ia.Start()
 		items = append(items, ia.GetCharacter())
 	}
-	greed := rand.Intn(cantItems - basic + 1)
+	greed := cantItems - dummy + 1
+	log.Printf("Se crean %d Greedy NPC", greed)
 	for i := 0; i < greed; i++ {
-		ia := ia.NewGreedIA(1, a)
-		go ia.Start()
+		ia := ia.NewGreedIA(i, a)
+		ia.Start()
 		items = append(items, ia.GetCharacter())
 	}
 	return items

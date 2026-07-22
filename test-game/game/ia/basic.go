@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
-	"juego-websocket/game/position"
 	"juego-websocket/game/size"
 	"math/rand"
 )
 
 func NewDummyIA(id int, a inter.Area) IA {
 	idName := fmt.Sprintf("IA_BASIC_%d", id)
-	pos := position.GetRandPosistion(a.GetSize())
+	pos := a.GetSize().GetRandPosistion()
 	c := item.NewCharacter(pos)
 	ia := newBasicIA(idName, c, a, dummyStragey)
 	ret := &ia
@@ -19,6 +18,7 @@ func NewDummyIA(id int, a inter.Area) IA {
 	return ret
 }
 
+// @TDOO se pega a los bordes
 func dummyStragey(ia IA) <-chan *Move {
 	canal := make(chan *Move)
 	go func() {

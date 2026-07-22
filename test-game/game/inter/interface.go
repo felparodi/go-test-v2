@@ -54,6 +54,7 @@ type Size interface {
 	GetMaxWidth() float64
 	GetMinHeight() float64
 	GetMinWidth() float64
+	GetRandPosistion() Position
 	Copy() Size
 }
 

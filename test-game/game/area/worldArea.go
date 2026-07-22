@@ -10,14 +10,14 @@ type WorldArea struct {
 }
 
 func NewWorldArea(s inter.Server) inter.Area {
-	size := size.NewSize(600, 800)
+	size := size.NewSizePadding(600, 800, 25)
 	world := &WorldArea{
 		BasicArea: newBasicArea(s, size),
 	}
-	for _, item := range GenerateCoins(0, size) {
+	for _, item := range GenerateCoins(15, size) {
 		world.items[item.GetId()] = item
 	}
-	for _, item := range GenerateNPC(0, world) {
+	for _, item := range GenerateNPC(1, world) {
 		world.items[item.GetId()] = item
 	}
 	return world

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"juego-websocket/game/inter"
 	"juego-websocket/game/position"
-	"log"
 	"math"
 	"math/rand"
 )
@@ -58,7 +57,7 @@ func NewBullet(owner inter.Item) Bullet {
 }
 
 func NewBulletAngle(owner inter.Item, angle float64) Bullet {
-	log.Println("New Bullet", owner.GetId())
+	//log.Println("New Bullet", owner.GetId())
 	module := float64(150)
 	vector := position.NewPosition(
 		math.Cos(angle)*module,

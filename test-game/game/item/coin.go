@@ -3,7 +3,6 @@ package item
 import (
 	"fmt"
 	"juego-websocket/game/inter"
-	"juego-websocket/game/position"
 )
 
 type Coin interface {
@@ -50,7 +49,7 @@ func (c *BasicCoin) SetPosition(pos inter.Position) {
 func NewCoin(i int, s inter.Size) Coin {
 	return &BasicCoin{
 		id:  fmt.Sprintf("coin_%d", i),
-		pos: position.GetRandPosistion(s),
+		pos: s.GetRandPosistion(),
 	}
 }
 

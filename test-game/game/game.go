@@ -3,7 +3,6 @@ package game
 import (
 	"juego-websocket/game/area"
 	"juego-websocket/game/inter"
-	"juego-websocket/game/position"
 	"sync"
 )
 
@@ -44,7 +43,7 @@ func (g *BasicGame) AddPlayer(p inter.Player) error {
 func (g *BasicGame) addPlayer(p inter.Player) error {
 	g.players[p.GetId()] = p
 	c := p.GetCharacter()
-	c.SetPosition(position.GetRandPosistion(g.worlds["0"].GetSize()))
+	c.SetPosition(g.worlds["0"].GetSize().GetRandPosistion())
 	g.worlds["0"].AddItem(c)
 	return nil
 }

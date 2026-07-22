@@ -3,8 +3,6 @@ package area
 import (
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
-	"juego-websocket/game/position"
-	"log"
 	"sync"
 )
 
@@ -66,7 +64,7 @@ func (a *BasicArea) update(deltaTime float64) error {
 	}
 	// Event Loop
 	for _, e := range events {
-		log.Println("Event", e.GetEventName(), e.GetOwner(), e.GetTragets())
+		//log.Println("Event", e.GetEventName(), e.GetOwner(), e.GetTragets())
 		a.processEvent(e)
 	}
 	return nil
@@ -103,7 +101,7 @@ func (w *BasicArea) GetState() inter.AreaState {
 func (w *BasicArea) processEvent(e inter.Event) {
 	switch e.GetEventName() {
 	case "move-item-random-pose":
-		e.GetOwner().SetPosition(position.GetRandPosistion(w.size))
+		e.GetOwner().SetPosition(w.size.GetRandPosistion())
 	case "remove":
 		delete(w.items, e.GetOwner().GetId())
 	case "create-bullet":

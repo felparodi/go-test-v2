@@ -1,6 +1,10 @@
 package size
 
-import "juego-websocket/game/inter"
+import (
+	"juego-websocket/game/inter"
+	"juego-websocket/game/position"
+	"math/rand"
+)
 
 type BasicSize struct {
 	Height  float64
@@ -70,4 +74,12 @@ func NormalizeMove(x, y float64, pos inter.Position, size inter.Size) (float64, 
 		y = 0
 	}
 	return x, y
+}
+
+func (s *BasicSize) GetRandPosistion() inter.Position {
+	return position.NewPosition(
+		float64(rand.Intn(int(s.GetMaxHeight()))+int(s.GetMinHeight())),
+		float64(rand.Intn(int(s.GetHeight()))+int(s.GetMinWidth())),
+		float64(rand.Intn(8)*45),
+	)
 }

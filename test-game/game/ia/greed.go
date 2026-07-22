@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
-	"juego-websocket/game/position"
 	"juego-websocket/game/size"
+	"log"
 	"math"
 	"math/rand"
 )
 
 func NewGreedIA(id int, a inter.Area) IA {
 	idName := fmt.Sprintf("IA_GREED_%d", id)
-	pos := position.GetRandPosistion(a.GetSize())
+	pos := a.GetSize().GetRandPosistion()
 	c := item.NewCharacter(pos)
 	ia := newBasicIA(idName, c, a, greadyStrategy)
 	ret := &ia
@@ -20,12 +20,15 @@ func NewGreedIA(id int, a inter.Area) IA {
 	return ret
 }
 
+// @TODO Queda indeciso y hace movinentos raros
 func greadyStrategy(ia IA) <-chan *Move {
+	log.Printf("Start Greedy Strategy")
 	canal := make(chan *Move)
 	position := ia.GetCharacter().GetPosition()
 	area := ia.GetArea()
 	coin := getClosedCoin(position, nil, area)
 	go func() {
+		log.Printf("Run Greedy Strategy")
 		moveTime := rand.Intn(150) * 10
 		position := ia.GetCharacter().GetPosition()
 		area := ia.GetArea()
@@ -48,6 +51,7 @@ func greadyStrategy(ia IA) <-chan *Move {
 				Y: y,
 			}
 		}
+		log.Printf("End Greedy Strategy")
 		canal <- nil
 	}()
 	return canal
@@ -63,7 +67,7 @@ func getClosedCoin(p1 inter.Position, last item.Coin, area inter.Area) item.Coin
 	}
 	for _, i := range area.SearchItems(func(i inter.Item) bool {
 		_, e := i.(item.Coin)
-		return !e
+		return e
 	}) {
 		c, _ := i.(item.Coin)
 		dx := p1.GetX() - c.GetPosition().GetX()

@@ -2,7 +2,6 @@ package position
 
 import (
 	"juego-websocket/game/inter"
-	"math/rand"
 )
 
 type Position struct {
@@ -48,13 +47,5 @@ func (p *Position) Copy() inter.Position {
 		X:     p.X,
 		Y:     p.Y,
 		Angle: p.Angle,
-	}
-}
-
-func GetRandPosistion(s inter.Size) inter.Position {
-	return &Position{
-		X:     float64(rand.Intn(int(s.GetWidth()))),
-		Y:     float64(rand.Intn(int(s.GetHeight()))),
-		Angle: float64(rand.Intn(8) * 45),
 	}
 }
