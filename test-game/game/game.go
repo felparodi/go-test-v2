@@ -8,9 +8,10 @@ import (
 )
 
 type BasicGame struct {
-	mu      sync.RWMutex
-	players map[string]inter.Player
-	worlds  map[string]inter.Area
+	mu            sync.RWMutex
+	players       map[string]inter.Player
+	worlds        map[string]inter.Area
+	activeChannel chan bool
 }
 
 func NewGame(s inter.Server) inter.Game {
@@ -19,12 +20,13 @@ func NewGame(s inter.Server) inter.Game {
 		worlds: map[string]inter.Area{
 			"0": area.NewWorldArea(s),
 		},
+		activeChannel: make(chan bool),
 	}
 }
 
 // @TODO implementar
-func (g *BasicGame) Start() error {
-	return nil
+func (g *BasicGame) Start() (chan bool, error) {
+	return g.activeChannel, nil
 }
 
 // @TODO implementar

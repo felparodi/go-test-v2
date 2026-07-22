@@ -14,6 +14,7 @@ type BasicArea struct {
 	items           map[string]inter.Item
 	itemsDictionary map[string][]string
 	server          inter.Server
+	activeChannel   chan bool
 	mu              sync.RWMutex
 }
 
@@ -23,12 +24,13 @@ func newBasicArea(server inter.Server, size inter.Size) BasicArea {
 		size:            size,
 		items:           map[string]inter.Item{},
 		itemsDictionary: map[string][]string{},
+		activeChannel:   make(chan bool),
 	}
 }
 
 // @TODO implement
-func (a *BasicArea) Start() error {
-	return nil
+func (a *BasicArea) Start() (chan bool, error) {
+	return a.activeChannel, nil
 }
 
 // @TODO implement

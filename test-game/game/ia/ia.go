@@ -7,54 +7,74 @@ import (
 
 type IA interface {
 	inter.CharacterControler
+	GetCharacter() inter.Character
+	GetArea() inter.Area
 }
 
-type IAData struct {
-	id        string
-	character inter.Character
-	area      inter.Area
-	server    inter.Server
-	live      bool
-	strategy  func(*IAData) <-chan *Move
+type BasicIA struct {
+	id            string
+	character     inter.Character
+	area          inter.Area
+	server        inter.Server
+	live          bool
+	activeChannel chan bool
+	strategy      IAStrategy
 }
 
-/*
-*	Que empiece a escucar al usuario
-**/
-func (b *IAData) Start() error {
-	b.live = true
-	for b.live {
-		strategy := b.strategy(b)
+type IAStrategy func(IA) <-chan *Move
+
+func newBasicIA(id string, c inter.Character, a inter.Area, str IAStrategy) BasicIA {
+	return BasicIA{
+		id:            id,
+		character:     c,
+		area:          a,
+		strategy:      str,
+		activeChannel: make(chan bool),
+	}
+}
+
+func (ia *BasicIA) Start() (chan bool, error) {
+	ia.live = true
+	go ia.liveing()
+	return ia.activeChannel, nil
+}
+
+func (ia *BasicIA) liveing() {
+	for ia.live {
+		strategy := ia.strategy(ia)
 		for {
 			time.Sleep(6000)
 			move := <-strategy
 			if move != nil {
-				b.character.Move(move.X*100, move.Y*100)
+				ia.character.Move(move.X*100, move.Y*100)
 				if move.Actions != nil {
 					for _, a := range move.Actions {
-						b.character.AddAction(a)
+						ia.character.AddAction(a)
 					}
 				}
 			} else {
 				break
 			}
 		}
-
 	}
+}
+
+// @TODO
+func (ia *BasicIA) Stop() error {
+	ia.live = false
 	return nil
 }
 
-func (b *IAData) Stop() error {
-	b.live = false
-	return nil
+func (ia *BasicIA) GetId() string {
+	return ia.id
 }
 
-func (b *IAData) GetId() string {
-	return b.id
+func (ia *BasicIA) GetCharacter() inter.Character {
+	return ia.character
 }
 
-func (b *IAData) GetCharacter() inter.Character {
-	return b.character
+func (ia *BasicIA) GetArea() inter.Area {
+	return ia.area
 }
 
 type Action struct {

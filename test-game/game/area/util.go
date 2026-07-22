@@ -22,7 +22,7 @@ func GenerateNPC(cantItems int, a inter.Area) []inter.Item {
 	// Generar items aleatorios en el mapa
 	basic := rand.Intn(cantItems + 1)
 	for i := 0; i < basic; i++ {
-		ia := ia.NewBasicIA(i, a)
+		ia := ia.NewDummyIA(i, a)
 		go ia.Start()
 		items = append(items, ia.GetCharacter())
 	}

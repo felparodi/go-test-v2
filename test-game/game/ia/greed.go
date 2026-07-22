@@ -12,22 +12,23 @@ import (
 func NewGreedIA(id int, a inter.Area) IA {
 	idName := fmt.Sprintf("IA_GREED_%d", id)
 	pos := position.GetRandPosistion(a.GetSize())
-	ret := &IAData{
-		id:        fmt.Sprintf(idName, id),
-		character: item.NewCharacter(pos),
-		area:      a,
-		strategy:  greadyStrategy,
-	}
+	c := item.NewCharacter(pos)
+	ia := newBasicIA(idName, c, a, greadyStrategy)
+	ret := &ia
 	ret.character.SetControler(ret)
 	return ret
 }
 
-func greadyStrategy(b *IAData) <-chan *Move {
+func greadyStrategy(ia IA) <-chan *Move {
 	canal := make(chan *Move)
-	coin := getClosedCoin(b.character.GetPosition(), nil, b.area)
+	position := ia.GetCharacter().GetPosition()
+	area := ia.GetArea()
+	coin := getClosedCoin(position, nil, area)
 	go func() {
 		moveTime := rand.Intn(150) * 10
-		coin := getClosedCoin(b.character.GetPosition(), coin, b.area)
+		position := ia.GetCharacter().GetPosition()
+		area := ia.GetArea()
+		coin := getClosedCoin(position, coin, area)
 		if coin == nil {
 			canal <- &Move{
 				X: 0,
@@ -35,11 +36,12 @@ func greadyStrategy(b *IAData) <-chan *Move {
 			}
 		}
 		for t := 0; t < moveTime; t++ {
-			angle := angleToNearestMultipleOf45(b.character.GetPosition(), coin.GetPosition())
+			position := ia.GetCharacter().GetPosition()
+			area := ia.GetArea()
+			angle := angleToNearestMultipleOf45(position, coin.GetPosition())
 			x := math.Cos(angle)
 			y := math.Sin(angle)
-			x, y = NormalizeMove(x, y, b.character.GetPosition(), b.area)
-
+			x, y = NormalizeMove(x, y, position, area)
 			canal <- &Move{
 				X: x,
 				Y: y,

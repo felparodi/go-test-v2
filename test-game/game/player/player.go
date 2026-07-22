@@ -12,13 +12,14 @@ import (
 )
 
 type Player struct {
-	id          string
-	character   inter.Character
-	conn        *websocket.Conn
-	mu          sync.Mutex
-	game        inter.Game
-	server      inter.Server
-	rateLimiter *RateLimiter
+	id            string
+	character     inter.Character
+	conn          *websocket.Conn
+	mu            sync.Mutex
+	game          inter.Game
+	server        inter.Server
+	rateLimiter   *RateLimiter
+	activeChannel chan bool
 }
 
 type RateLimiter struct {
@@ -30,11 +31,12 @@ type RateLimiter struct {
 func NewPlayer(id string, conn *websocket.Conn, s inter.Server, g inter.Game) inter.Player {
 	log.Println("New Player", id)
 	return &Player{
-		id:          id,
-		conn:        conn,
-		server:      s,
-		game:        g,
-		rateLimiter: &RateLimiter{},
+		id:            id,
+		conn:          conn,
+		server:        s,
+		game:          g,
+		rateLimiter:   &RateLimiter{},
+		activeChannel: make(chan bool),
 	}
 }
 
@@ -47,9 +49,9 @@ func (p *Player) Send(message []byte) error {
 /*
 *	Que empiece a escucar al usuario
 **/
-func (p *Player) Start() error {
+func (p *Player) Start() (chan bool, error) {
 	p.readMessages()
-	return nil
+	return p.activeChannel, nil
 }
 
 // Rate limiting mejorado

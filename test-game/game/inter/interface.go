@@ -68,7 +68,7 @@ type Position interface {
 }
 
 type Thread interface {
-	Start() error
+	Start() (chan bool, error)
 	Stop() error
 }
 
