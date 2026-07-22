@@ -16,24 +16,13 @@ type Item interface {
 	Collition(Item) []Event
 	GetColitonArea() []ColitionaArea
 	ProcessEvent(Event)
-}
-
-type Coin interface {
-	Item
-	SetPoint(int)
-	GetPoint() int
-}
-
-type Bullet interface {
-	Item
-	GetOwner() Item
+	GetType() string
 }
 
 type CharacterControler interface {
+	Thread
 	GetId() string
 	GetCharacter() Character
-	Start() error
-	End() error
 }
 
 type Character interface {
@@ -61,6 +50,10 @@ type ColitionaArea interface {
 type Size interface {
 	GetHeight() float64
 	GetWidth() float64
+	GetMaxHeight() float64
+	GetMaxWidth() float64
+	GetMinHeight() float64
+	GetMinWidth() float64
 	Copy() Size
 }
 
@@ -74,31 +67,44 @@ type Position interface {
 	Copy() Position
 }
 
-type World interface {
-	GetSize() Size
-	RemovePlayer(Player)
-	RemovePlayerId(string)
-	RenamePlayer(string, string)
-	AddPlayer(Player)
+type Thread interface {
+	Start() error
+	Stop() error
+}
+
+type Game interface {
+	Thread
+	AddPlayer(Player) error
+	RemovePlayer(Player) error
+	RemovePlayerId(string) error
+	RenamePlayer(string, string) error
 	GetPlayer(string) (Player, bool)
 	GetPlayers() []Player
-	Update(float64)
-	RLock()
-	RUnlock()
-	GetWorldState() WorldState
-	GetCoins() []Coin
+	Update(float64) error //@TODO temporal
+	GetState() AreaState  //@TODO temporal
+}
+
+type Area interface {
+	Thread
+	GetSize() Size
+	AddItem(Item) error
+	RemoveItem(Item) error
+	RemoveItemId(string) error
+	Update(float64) error
+	GetState() AreaState
+	SearchItems(func(Item) bool) []Item
+	SmallSearchItems(string, func(Item) bool) []Item
 }
 
 type Server interface {
-	RemovePlayerId(string)
-	GameLoop()
+	RemovePlayerId(string) error
+	GameLoop() error
 	HandleWebSocket(http.ResponseWriter, *http.Request)
 }
 
-type WorldState interface {
+type AreaState interface {
 	GetItems() []Item
 	GetCharacters() []Character
-	GetPlayers() []Player
 }
 
 type Action interface {

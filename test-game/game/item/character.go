@@ -2,7 +2,9 @@ package item
 
 import (
 	"fmt"
+	"juego-websocket/game/event"
 	"juego-websocket/game/inter"
+	"juego-websocket/game/position"
 	"math"
 	"math/rand"
 )
@@ -17,31 +19,13 @@ type Character struct {
 	acctions        []inter.Action
 	acctionColdDown float64
 }
-type CharacterEvent struct {
-	owner   *Character
-	name    string
-	targets []inter.Item
-}
 
-func (ce *CharacterEvent) GetOwner() inter.Item {
-	return ce.owner
-}
-
-func (ce *CharacterEvent) GetEventName() string {
-	return ce.name
-}
-
-func (ce *CharacterEvent) GetTragets() []inter.Item {
-	return ce.targets
-}
-
-func NewCharacter(s inter.Size) inter.Character {
-	pos := GetRandPosistion(s)
+func NewCharacter(pos inter.Position) inter.Character {
 	return &Character{
 		id:              fmt.Sprintf("Character_%d", rand.Intn(9999999)),
 		position:        pos,
 		oldPos:          pos,
-		velocity:        &Position{X: 0, Y: 0, Angle: 0},
+		velocity:        position.NewPosition(0, 0, 0),
 		acctions:        []inter.Action{},
 		acctionColdDown: 0,
 		score:           0,
@@ -111,27 +95,27 @@ func (c *Character) Update(deltaTime float64, s inter.Size) []inter.Event {
 	if c.position.GetX() < 0 {
 		c.position.SetX(0)
 		c.velocity.SetX(0)
-		events = append(events, &CharacterEvent{name: "limit-min-x", owner: c})
+		events = append(events, event.NewEvent("limit-min-x", c, nil))
 	}
 	if c.position.GetX() > float64(s.GetWidth()) {
 		c.position.SetX(s.GetWidth())
 		c.velocity.SetX(0)
-		events = append(events, &CharacterEvent{name: "limit-max-x", owner: c})
+		events = append(events, event.NewEvent("limit-max-x", c, nil))
 	}
 	if c.position.GetY() < 0 {
 		c.position.SetY(0)
 		c.velocity.SetY(0)
-		events = append(events, &CharacterEvent{name: "limit-min-y", owner: c})
+		events = append(events, event.NewEvent("limit-min-y", c, nil))
 	}
 	if c.position.GetY() > float64(s.GetHeight()) {
 		c.position.SetY(s.GetHeight())
 		c.velocity.SetY(0)
-		events = append(events, &CharacterEvent{name: "limit-max-y", owner: c})
+		events = append(events, event.NewEvent("limit-max-y", c, nil))
 	}
 	for _, action := range c.acctions {
 		switch action.GetName() {
 		case "shoot":
-			events = append(events, &CharacterEvent{name: "create-bullet", owner: c})
+			events = append(events, event.NewEvent("create-bullet", c, nil))
 		}
 	}
 	clear(c.acctions)
@@ -188,4 +172,8 @@ func (c *Character) ProcessEvent(e inter.Event) {
 			c.score = 0
 		}
 	}
+}
+
+func (c *Character) GetType() string {
+	return "character"
 }

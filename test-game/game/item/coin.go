@@ -3,15 +3,22 @@ package item
 import (
 	"fmt"
 	"juego-websocket/game/inter"
+	"juego-websocket/game/position"
 )
 
-type Coin struct {
+type Coin interface {
+	inter.Item
+	SetPoint(int)
+	GetPoint() int
+}
+
+type BasicCoin struct {
 	id  string
 	pos inter.Position
 }
 
 type CoinEvent struct {
-	owner   *Coin
+	owner   Coin
 	name    string
 	targets []inter.Item
 }
@@ -28,30 +35,30 @@ func (ce *CoinEvent) GetTragets() []inter.Item {
 	return ce.targets
 }
 
-func (c *Coin) GetId() string {
+func (c *BasicCoin) GetId() string {
 	return c.id
 }
 
-func (c *Coin) GetPosition() inter.Position {
+func (c *BasicCoin) GetPosition() inter.Position {
 	return c.pos
 }
 
-func (c *Coin) SetPosition(pos inter.Position) {
+func (c *BasicCoin) SetPosition(pos inter.Position) {
 	c.pos = pos
 }
 
-func NewCoin(i int, s inter.Size) inter.Coin {
-	return &Coin{
+func NewCoin(i int, s inter.Size) Coin {
+	return &BasicCoin{
 		id:  fmt.Sprintf("coin_%d", i),
-		pos: GetRandPosistion(s),
+		pos: position.GetRandPosistion(s),
 	}
 }
 
-func (c *Coin) Collition(i inter.Item) []inter.Event {
+func (c *BasicCoin) Collition(i inter.Item) []inter.Event {
 	events := []inter.Event{}
 	if c.isCollition(i) {
 		switch i.(type) {
-		case *Character:
+		case inter.Character:
 			events = append(events,
 				&CoinEvent{name: "add-points", owner: c, targets: []inter.Item{i}},
 				&CoinEvent{name: "move-item-random-pose", owner: c},
@@ -61,29 +68,33 @@ func (c *Coin) Collition(i inter.Item) []inter.Event {
 	return events
 }
 
-func (c *Coin) isCollition(i inter.Item) bool {
+func (c *BasicCoin) isCollition(i inter.Item) bool {
 	dx := i.GetPosition().GetX() - c.GetPosition().GetX()
 	dy := i.GetPosition().GetY() - c.GetPosition().GetY()
 	distance := dx*dx + dy*dy
 	return distance < 900
 }
 
-func (c *Coin) Update(_ float64, _ inter.Size) []inter.Event {
+func (c *BasicCoin) Update(_ float64, _ inter.Size) []inter.Event {
 	return []inter.Event{}
 }
 
-func (c *Coin) GetColitonArea() []inter.ColitionaArea {
+func (c *BasicCoin) GetColitonArea() []inter.ColitionaArea {
 	return []inter.ColitionaArea{}
 }
 
-func (c *Coin) ProcessEvent(e inter.Event) {
+func (c *BasicCoin) ProcessEvent(e inter.Event) {
 
 }
 
-func (c *Coin) GetPoint() int {
+func (c *BasicCoin) GetPoint() int {
 	return 10
 }
 
-func (c *Coin) SetPoint(int) {
+func (c *BasicCoin) SetPoint(int) {
 
+}
+
+func (c *BasicCoin) GetType() string {
+	return "coin"
 }

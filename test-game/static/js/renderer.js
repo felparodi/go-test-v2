@@ -73,24 +73,7 @@ export default class Renderer {
     
     drawPlayer(player, isLocal) {
         const ctx = this.ctx;
-        const size = isLocal ? CONFIG.PLAYER_SIZE_LOCAL : CONFIG.PLAYER_SIZE_OTHER;
-        const x = player.x;
-        const y = player.y;
-        
-        // --- CALCULAR ÁNGULO DE DIRECCIÓN ---
-        let isMoving = false;
-    
-        const angle = player.angle || 0;
-        
-        // --- DIBUJAR LÍNEA DE DIRECCIÓN (DEBUG) ---
-        if (this.debugMode && isLocal) {
-            PlayerRender.drawDebugLine(ctx, player)
-        }
-        
-        // --- DIBUJAR EL TRIÁNGULO ---
-        PlayerRender.drawBody(ctx, player, isLocal);
-        // --- NOMBRE Y PUNTUACIÓN ---
-        PlayerRender.drawPlayerInfo(ctx, player, isLocal)
+        PlayerRender.draw(ctx, player, isLocal)
     }
     
     render(gameState, playerId) {

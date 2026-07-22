@@ -12,7 +12,7 @@ type IA interface {
 type IAData struct {
 	id        string
 	character inter.Character
-	world     inter.World
+	area      inter.Area
 	server    inter.Server
 	live      bool
 	strategy  func(*IAData) <-chan *Move
@@ -44,7 +44,7 @@ func (b *IAData) Start() error {
 	return nil
 }
 
-func (b *IAData) End() error {
+func (b *IAData) Stop() error {
 	b.live = false
 	return nil
 }

@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
+	"juego-websocket/game/position"
 	"math/rand"
 )
 
-func NewBasicIA(id int, s inter.Server, w inter.World) IA {
+func NewBasicIA(id int, a inter.Area) IA {
 	idName := fmt.Sprintf("IA_BASIC_%d", id)
+	pos := position.GetRandPosistion(a.GetSize())
 	ret := &IAData{
 		id:        fmt.Sprintf(idName, id),
-		character: item.NewCharacter(w.GetSize()),
-		server:    s,
-		world:     w,
+		character: item.NewCharacter(pos),
+		area:      a,
 		strategy:  basicStragey,
 	}
 	ret.character.SetControler(ret)
@@ -27,7 +28,7 @@ func basicStragey(b *IAData) <-chan *Move {
 		x, y := RandomDirection()
 		actions := []*Action{}
 		for t := 0; t < moveTime; t++ {
-			x, y := NormalizeMove(x, y, b.character.GetPosition(), b.world)
+			x, y := NormalizeMove(x, y, b.character.GetPosition(), b.area)
 			if rand.Intn(10) > 7 {
 				actions = append(actions, &Action{name: "shoot"})
 			}

@@ -3,12 +3,18 @@ package item
 import (
 	"fmt"
 	"juego-websocket/game/inter"
+	"juego-websocket/game/position"
 	"log"
 	"math"
 	"math/rand"
 )
 
-type Bullet struct {
+type Bullet interface {
+	inter.Item
+	GetOwner() inter.Item
+}
+
+type BasicBullet struct {
 	id     string
 	pos    inter.Position
 	oldPos inter.Position
@@ -17,7 +23,7 @@ type Bullet struct {
 }
 
 type BulletEvent struct {
-	owner   *Bullet
+	owner   Bullet
 	name    string
 	targets []inter.Item
 }
@@ -34,32 +40,32 @@ func (ce *BulletEvent) GetTragets() []inter.Item {
 	return ce.targets
 }
 
-func (b *Bullet) GetId() string {
+func (b *BasicBullet) GetId() string {
 	return b.id
 }
 
-func (b *Bullet) GetPosition() inter.Position {
+func (b *BasicBullet) GetPosition() inter.Position {
 	return b.pos
 }
 
-func (b *Bullet) SetPosition(pos inter.Position) {
+func (b *BasicBullet) SetPosition(pos inter.Position) {
 	b.pos = pos
 }
 
-func NewBullet(owner inter.Item) inter.Bullet {
+func NewBullet(owner inter.Item) Bullet {
 	angle := owner.GetPosition().GetAngle()
 	return NewBulletAngle(owner, angle)
 }
 
-func NewBulletAngle(owner inter.Item, angle float64) inter.Bullet {
+func NewBulletAngle(owner inter.Item, angle float64) Bullet {
 	log.Println("New Bullet", owner.GetId())
 	module := float64(150)
-	vector := &Position{
-		X:     math.Cos(angle) * module,
-		Y:     math.Sin(angle) * module,
-		Angle: angle,
-	}
-	return &Bullet{
+	vector := position.NewPosition(
+		math.Cos(angle)*module,
+		math.Sin(angle)*module,
+		angle,
+	)
+	return &BasicBullet{
 		id:     fmt.Sprintf("Bullet_%d", rand.Intn(9999999)),
 		pos:    owner.GetPosition().Copy(),
 		owner:  owner,
@@ -67,7 +73,7 @@ func NewBulletAngle(owner inter.Item, angle float64) inter.Bullet {
 	}
 }
 
-func (b *Bullet) Collition(i inter.Item) []inter.Event {
+func (b *BasicBullet) Collition(i inter.Item) []inter.Event {
 	events := []inter.Event{}
 	if b.isCollition(i) {
 		switch i.(type) {
@@ -83,14 +89,14 @@ func (b *Bullet) Collition(i inter.Item) []inter.Event {
 	return events
 }
 
-func (b *Bullet) isCollition(i inter.Item) bool {
+func (b *BasicBullet) isCollition(i inter.Item) bool {
 	dx := i.GetPosition().GetX() - b.GetPosition().GetX()
 	dy := i.GetPosition().GetY() - b.GetPosition().GetY()
 	distance := dx*dx + dy*dy
 	return distance < 300
 }
 
-func (b *Bullet) Update(deltaTime float64, s inter.Size) []inter.Event {
+func (b *BasicBullet) Update(deltaTime float64, s inter.Size) []inter.Event {
 	b.oldPos = b.pos
 	events := []inter.Event{}
 	// Mover con deltaTime para consistencia de velocidad
@@ -102,14 +108,18 @@ func (b *Bullet) Update(deltaTime float64, s inter.Size) []inter.Event {
 	return events
 }
 
-func (b *Bullet) GetColitonArea() []inter.ColitionaArea {
+func (b *BasicBullet) GetColitonArea() []inter.ColitionaArea {
 	return []inter.ColitionaArea{}
 }
 
-func (b *Bullet) GetOwner() inter.Item {
+func (b *BasicBullet) GetOwner() inter.Item {
 	return b.owner
 }
 
-func (b *Bullet) ProcessEvent(e inter.Event) {
+func (b *BasicBullet) ProcessEvent(e inter.Event) {
 
+}
+
+func (c *BasicBullet) GetType() string {
+	return "bullet"
 }

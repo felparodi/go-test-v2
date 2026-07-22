@@ -13,18 +13,18 @@ func RandomDirection() (float64, float64) {
 	return x, y
 }
 
-func NormalizeMove(x, y float64, pos inter.Position, world inter.World) (float64, float64) {
-	size := world.GetSize()
-	if pos.GetX()+x < 0 {
+func NormalizeMove(x, y float64, pos inter.Position, area inter.Area) (float64, float64) {
+	size := area.GetSize()
+	if pos.GetX()+x < area.GetSize().GetMinWidth() {
 		x = 0
 	}
-	if pos.GetY()+y < 0 {
+	if pos.GetY()+y < area.GetSize().GetMinHeight() {
 		y = 0
 	}
-	if pos.GetX()+x > size.GetWidth() {
+	if pos.GetX()+x > size.GetMaxWidth() {
 		x = 0
 	}
-	if pos.GetY()+y > size.GetHeight() {
+	if pos.GetY()+y > size.GetMaxHeight() {
 		y = 0
 	}
 	return x, y

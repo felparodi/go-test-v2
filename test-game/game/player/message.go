@@ -1,4 +1,4 @@
-package game
+package player
 
 type Message struct {
 	Type    string      `json:"type"`

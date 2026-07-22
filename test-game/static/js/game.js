@@ -47,9 +47,11 @@ export default class Game {
     setupNetworkHandlers() {
         this.network.onMessage((data) => {
             this.gameState = data;
-            this.renderer.render(this.gameState, this.playerId);
-            this.updateStats();
-            this.updateFPS();
+            if(data.type == "game-state") {
+                this.renderer.render(this.gameState, this.playerId);
+                this.updateStats();
+                this.updateFPS();
+            }
         });
     }
     

@@ -2,6 +2,7 @@ package game
 
 import (
 	"juego-websocket/game/inter"
+	"juego-websocket/game/item"
 )
 
 type CharacterData struct {
@@ -29,9 +30,9 @@ func toJson(i interface{}) interface{} {
 		case inter.Character:
 			c, _ := it.(inter.Character)
 			return characterToJson(c)
-		case inter.Bullet:
+		case item.Bullet:
 			return itemToJson(it, "bullet")
-		case inter.Coin:
+		case item.Coin:
 			return itemToJson(it, "coin")
 		}
 	case inter.Player:

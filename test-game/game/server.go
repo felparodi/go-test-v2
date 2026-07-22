@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/json"
 	"juego-websocket/game/inter"
+	"juego-websocket/game/player"
 	"log"
 	"net/http"
 	"sync"
@@ -12,7 +13,7 @@ import (
 )
 
 type Server struct {
-	worlds       map[string]inter.World
+	game         inter.Game
 	upgrader     websocket.Upgrader
 	mu           sync.RWMutex
 	gameLoopDone chan bool
@@ -20,9 +21,18 @@ type Server struct {
 	broadcastChan chan []byte
 }
 
+type SendInfo struct {
+	InfoType string `json:"type"`
+}
 type GameState struct {
+	SendInfo
 	CharacterData map[string]interface{} `json:"players"`
 	Items         []interface{}          `json:"items"`
+}
+
+type PlayerSate struct {
+	SendInfo
+	Player interface{} `json:"player"`
 }
 
 func NewServer() inter.Server {
@@ -37,12 +47,8 @@ func NewServer() inter.Server {
 		gameLoopDone:  make(chan bool),
 		broadcastChan: make(chan []byte, 100),
 	}
-	s.worlds = map[string]inter.World{"0": NewWorld(s)}
+	s.game = NewGame(s)
 	return s
-}
-
-func (s *Server) getWorldTo() inter.World {
-	return s.worlds["0"]
 }
 
 // Manejar conexión WebSocket
@@ -59,22 +65,17 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		playerID = conn.RemoteAddr().String()
 	}
 
-	world := s.getWorldTo()
-	player := NewPlayer(playerID, conn, s, world)
-
-	s.mu.Lock()
-	world.AddPlayer(player)
-	s.mu.Unlock()
-
+	player := player.NewPlayer(playerID, conn, s, s.game)
+	s.game.AddPlayer(player)
 	log.Printf("Jugador %s conectado", playerID)
-
 	s.sendGameState(player)
+
 	go player.Start()
 
 	<-s.gameLoopDone
 }
 
-// Enviar estado del juego con optimización de broadcast
+// Enviar estado del juego con optimización de broadcast // No es un broadcas puro ya que se los envia uno a uno
 func (s *Server) sendGameStateToAll() {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -87,11 +88,27 @@ func (s *Server) sendGameStateToAll() {
 	}
 
 	var wg sync.WaitGroup
-	for _, player := range s.getPlayers() {
+	for _, player := range s.game.GetPlayers() {
 		wg.Add(1)
 		go func(p inter.Player) {
 			defer wg.Done()
 			err := p.Send(data)
+			if err != nil {
+				log.Printf("Error al enviar a %s: %v", p.GetId(), err)
+			}
+			playerInfo := toJson(p)
+
+			pData, err := json.Marshal(
+				PlayerSate{
+					Player: playerInfo,
+					SendInfo: SendInfo{
+						InfoType: "own",
+					},
+				},
+			)
+			if err == nil {
+				err = p.Send(pData)
+			}
 			if err != nil {
 				log.Printf("Error al enviar a %s: %v", p.GetId(), err)
 			}
@@ -101,7 +118,7 @@ func (s *Server) sendGameStateToAll() {
 }
 
 // Bucle principal del juego optimizado
-func (s *Server) GameLoop() {
+func (s *Server) GameLoop() error {
 	ticker := time.NewTicker(16 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -115,10 +132,10 @@ func (s *Server) GameLoop() {
 	for {
 		select {
 		case <-s.gameLoopDone:
-			return
+			return nil
 
 		case <-physicsTicker.C:
-			s.worlds["0"].Update(fixedDeltaTime)
+			s.game.Update(fixedDeltaTime)
 
 		case <-ticker.C:
 			now := time.Now()
@@ -136,16 +153,14 @@ func (s *Server) GameLoop() {
 
 // Obtener estado del juego incluyendo velocidades
 func (s *Server) getGameState() GameState {
-	s.worlds["0"].RLock()
-	defer s.worlds["0"].RUnlock()
 
-	worldData := s.worlds["0"].GetWorldState()
+	worldData := s.game.GetState()
 
 	playersData := make(map[string]interface{})
+
 	for _, player := range worldData.GetCharacters() {
 		playersData[player.GetControler().GetId()] = toJson(player)
 	}
-
 	itemsData := []interface{}{}
 	for _, item := range worldData.GetItems() {
 		//log.Println(item)
@@ -155,6 +170,9 @@ func (s *Server) getGameState() GameState {
 	r := GameState{
 		CharacterData: playersData,
 		Items:         itemsData,
+		SendInfo: SendInfo{
+			InfoType: "game-state",
+		},
 	}
 
 	//log.Println(r)
@@ -173,30 +191,13 @@ func (s *Server) sendGameState(player inter.Player) {
 }
 
 // Eliminar jugador
-func (s *Server) RemovePlayerId(id string) {
+func (s *Server) RemovePlayerId(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if player, exists := s.getPlayer(id); exists {
-		player.End()
-
-		s.worlds["0"].RemovePlayerId(id)
-
+	if player, exists := s.game.GetPlayer(id); exists {
+		player.Stop()
+		s.game.RemovePlayerId(id)
 		log.Printf("Jugador %s desconectado", id)
 	}
-}
-
-/*
-*
- */
-func (s *Server) getPlayer(playerId string) (inter.Player, bool) {
-	return s.worlds["0"].GetPlayer(playerId)
-}
-
-func (s *Server) getPlayers() []inter.Player {
-	players := make([]inter.Player, 0)
-	for _, word := range s.worlds {
-		players = append(players, word.GetPlayers()...)
-	}
-	return players
+	return nil
 }

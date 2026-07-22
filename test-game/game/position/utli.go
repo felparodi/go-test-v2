@@ -1,4 +1,4 @@
-package item
+package position
 
 import (
 	"juego-websocket/game/inter"
@@ -9,6 +9,14 @@ type Position struct {
 	X     float64
 	Y     float64
 	Angle float64
+}
+
+func NewPosition(x, y, angle float64) inter.Position {
+	return &Position{
+		X:     x,
+		Y:     y,
+		Angle: angle,
+	}
 }
 
 func (p *Position) GetX() float64 {

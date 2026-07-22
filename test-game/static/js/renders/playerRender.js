@@ -34,8 +34,7 @@ export default class PlayerRender {
             endX2 - Math.cos(angle + arrowAngle) * arrowSize,
             endY2 - Math.sin(angle + arrowAngle) * arrowSize
         );
-        ctx.stroke();
-        
+
         // Mostrar ángulo
         ctx.setLineDash([]);
         ctx.fillStyle = 'rgba(255, 255, 0, 0.8)';
@@ -74,7 +73,9 @@ export default class PlayerRender {
         ctx.lineTo(-size * 0.6, -size * 0.7); // Superior izquierda
         ctx.lineTo(-size * 0.6, size * 0.7);  // Inferior izquierda
         ctx.closePath();
-        
+        //
+
+
         // Gradiente de color
         const gradient = ctx.createLinearGradient(-size, 0, size, 0);
         if (isLocal) {
@@ -93,6 +94,8 @@ export default class PlayerRender {
         ctx.strokeStyle = isLocal ? '#1565C0' : '#4A148C';
         ctx.lineWidth = 2;
         ctx.stroke();
+
+
         
         // --- DIBUJAR OJOS EN LA PUNTA ---
         // Los ojos se colocan cerca de la punta (lado derecho)
@@ -161,5 +164,33 @@ export default class PlayerRender {
         ctx.fillText('⭐ NO' + (score || 0), x, y + size + 28);
         
         ctx.restore();
+    }
+
+    static draw(ctx, player, isLocal) {
+        // --- DIBUJAR LÍNEA DE DIRECCIÓN (DEBUG) ---
+        if (this.debugMode && isLocal) {
+            PlayerRender.drawDebugLine(ctx, player)
+        }
+        
+        // --- DIBUJAR EL TRIÁNGULO ---
+        PlayerRender.drawBody(ctx, player, isLocal);
+        // --- NOMBRE Y PUNTUACIÓN ---
+        PlayerRender.drawPlayerInfo(ctx, player, isLocal)
+        PlayerRender.drawEfect(ctx, player)
+    }
+
+    static drawEfect(ctx, { x, y }) {
+        if ((Date.now()%200) < 100) {
+            ctx.beginPath();
+            ctx.arc(x, y, 32, 0, 2 * Math.PI);
+            ctx.lineWidth = 5
+            ctx.strokeStyle = '#ffd64f57'
+            ctx.stroke(); //Solo borde
+            ctx.arc(x, y, 33, 0, 2 * Math.PI);
+            ctx.lineWidth = 1
+            ctx.strokeStyle = '#4ff9ff'
+            ctx.stroke(); //Solo borde
+            ctx.restore();
+        }
     }
 }

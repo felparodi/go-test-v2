@@ -1,8 +1,9 @@
-package game
+package player
 
 import (
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
+	"juego-websocket/game/position"
 	"log"
 	"sync"
 	"time"
@@ -15,7 +16,7 @@ type Player struct {
 	character   inter.Character
 	conn        *websocket.Conn
 	mu          sync.Mutex
-	world       inter.World
+	game        inter.Game
 	server      inter.Server
 	rateLimiter *RateLimiter
 }
@@ -26,13 +27,13 @@ type RateLimiter struct {
 	mu         sync.Mutex
 }
 
-func NewPlayer(id string, conn *websocket.Conn, s inter.Server, w inter.World) inter.Player {
+func NewPlayer(id string, conn *websocket.Conn, s inter.Server, g inter.Game) inter.Player {
 	log.Println("New Player", id)
 	return &Player{
 		id:          id,
 		conn:        conn,
 		server:      s,
-		world:       w,
+		game:        g,
 		rateLimiter: &RateLimiter{},
 	}
 }
@@ -87,7 +88,7 @@ func (p *Player) readMessages() {
 func (p *Player) initMessage(msg Message) {
 	data := msg.Payload.(map[string]interface{})
 	if id, ok := data["playerId"].(string); ok && id != p.id {
-		p.world.RenamePlayer(p.id, id)
+		p.game.RenamePlayer(p.id, id)
 		log.Printf("Jugador renombrado a %s", id)
 	}
 }
@@ -132,15 +133,17 @@ func (p *Player) SetId(id string) {
 	p.id = id
 }
 
+// @TODO
 func (p *Player) GetCharacter() inter.Character {
 	if p.character == nil {
-		p.character = item.NewCharacter(p.world.GetSize())
+		pos := position.NewPosition(0, 0, 0)
+		p.character = item.NewCharacter(pos)
 		p.character.SetControler(p)
 	}
 	return p.character
 }
 
-func (p *Player) End() error {
+func (p *Player) Stop() error {
 	return p.conn.Close()
 }
 

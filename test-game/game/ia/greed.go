@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"juego-websocket/game/inter"
 	"juego-websocket/game/item"
+	"juego-websocket/game/position"
 	"math"
 	"math/rand"
 )
 
-func NewGreedIA(id int, s inter.Server, w inter.World) IA {
+func NewGreedIA(id int, a inter.Area) IA {
 	idName := fmt.Sprintf("IA_GREED_%d", id)
+	pos := position.GetRandPosistion(a.GetSize())
 	ret := &IAData{
 		id:        fmt.Sprintf(idName, id),
-		character: item.NewCharacter(w.GetSize()),
-		server:    s,
-		world:     w,
+		character: item.NewCharacter(pos),
+		area:      a,
 		strategy:  greadyStrategy,
 	}
 	ret.character.SetControler(ret)
@@ -23,15 +24,21 @@ func NewGreedIA(id int, s inter.Server, w inter.World) IA {
 
 func greadyStrategy(b *IAData) <-chan *Move {
 	canal := make(chan *Move)
-	coin := getClosedCoin(b.character.GetPosition(), nil, b.world)
+	coin := getClosedCoin(b.character.GetPosition(), nil, b.area)
 	go func() {
 		moveTime := rand.Intn(150) * 10
-		coin := getClosedCoin(b.character.GetPosition(), coin, b.world)
+		coin := getClosedCoin(b.character.GetPosition(), coin, b.area)
+		if coin == nil {
+			canal <- &Move{
+				X: 0,
+				Y: 0,
+			}
+		}
 		for t := 0; t < moveTime; t++ {
 			angle := angleToNearestMultipleOf45(b.character.GetPosition(), coin.GetPosition())
 			x := math.Cos(angle)
 			y := math.Sin(angle)
-			x, y = NormalizeMove(x, y, b.character.GetPosition(), b.world)
+			x, y = NormalizeMove(x, y, b.character.GetPosition(), b.area)
 
 			canal <- &Move{
 				X: x,
@@ -43,7 +50,7 @@ func greadyStrategy(b *IAData) <-chan *Move {
 	return canal
 }
 
-func getClosedCoin(p1 inter.Position, last inter.Coin, w inter.World) inter.Coin {
+func getClosedCoin(p1 inter.Position, last item.Coin, area inter.Area) item.Coin {
 	closed := last
 	closedDist := float64(999999999999999)
 	if last != nil {
@@ -51,7 +58,11 @@ func getClosedCoin(p1 inter.Position, last inter.Coin, w inter.World) inter.Coin
 		cdy := p1.GetY() - closed.GetPosition().GetY()
 		closedDist = cdx * cdy
 	}
-	for _, c := range w.GetCoins() {
+	for _, i := range area.SearchItems(func(i inter.Item) bool {
+		_, e := i.(item.Coin)
+		return !e
+	}) {
+		c, _ := i.(item.Coin)
 		dx := p1.GetX() - c.GetPosition().GetX()
 		dy := p1.GetY() - c.GetPosition().GetY()
 		nDist := dx*dx + dy*dy + 1
