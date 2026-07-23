@@ -8,17 +8,17 @@ import (
 
 // Zona de juego con coordenadas
 type BasicArea struct {
+	name            string
 	size            inter.Size
 	items           map[string]inter.Item
 	itemsDictionary map[string][]string
-	server          inter.Server
 	activeChannel   chan bool
 	mu              sync.RWMutex
 }
 
-func newBasicArea(server inter.Server, size inter.Size) BasicArea {
+func newBasicArea(name string, size inter.Size) BasicArea {
 	return BasicArea{
-		server:          server,
+		name:            name,
 		size:            size,
 		items:           map[string]inter.Item{},
 		itemsDictionary: map[string][]string{},

@@ -81,7 +81,6 @@ type Game interface {
 	RenamePlayer(string, string) error
 	GetPlayer(string) (Player, bool)
 	GetPlayers() []Player
-	GetState() AreaState //@TODO temporal
 }
 
 type Area interface {
