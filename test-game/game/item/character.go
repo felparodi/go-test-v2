@@ -5,6 +5,7 @@ import (
 	"juego-websocket/game/event"
 	"juego-websocket/game/inter"
 	"juego-websocket/game/position"
+	"juego-websocket/game/size"
 	"math"
 	"math/rand"
 )
@@ -42,7 +43,7 @@ func (c *Character) GetControler() inter.CharacterControler {
 
 func (c *Character) Move(velocityX float64, velocityY float64) {
 	// Limitar velocidad máxima
-	maxSpeed := 100.0
+	maxSpeed := 250.0
 	speed := math.Sqrt(velocityX*velocityX + velocityY*velocityY)
 	if speed > maxSpeed {
 		scale := maxSpeed / speed
@@ -62,7 +63,7 @@ func (c *Character) Move(velocityX float64, velocityY float64) {
 
 func (c *Character) Update(deltaTime float64, s inter.Size) []inter.Event {
 	//Copio la posicion anterior
-	c.oldPos = c.position
+	c.oldPos = c.position.Copy()
 	c.acctionColdDown -= deltaTime
 	events := []inter.Event{}
 	const friction = 0.92
@@ -88,30 +89,26 @@ func (c *Character) Update(deltaTime float64, s inter.Size) []inter.Event {
 		// Diferencia de ángulos (puedes devolver cualquiera de estos)
 		c.velocity.SetAngle(velocityAngle) // Ángulo de la velocidad
 	}
+	vx, vy, limits := size.NormalizeMove(
+		c.velocity.GetX()*deltaTime,
+		c.velocity.GetY()*deltaTime,
+		c.position,
+		s,
+	)
 
 	// Mover con deltaTime para consistencia de velocidad
-	c.position.SetX(c.position.GetX() + c.velocity.GetX()*deltaTime)
-	c.position.SetY(c.position.GetY() + c.velocity.GetY()*deltaTime)
-	if c.position.GetX() < 0 {
-		c.position.SetX(0)
-		c.velocity.SetX(0)
-		events = append(events, event.NewEvent("limit-min-x", c, nil))
+	c.position.SetX(c.position.GetX() + vx)
+	c.position.SetY(c.position.GetY() + vy)
+	for _, limit := range limits {
+		switch limit {
+		case "limit-min-x", "limit-max-x":
+			c.velocity.SetX(0)
+		case "limit-min-y", "limit-max-y":
+			c.velocity.SetY(0)
+		}
+		events = append(events, event.NewEvent(limit, c, nil))
 	}
-	if c.position.GetX() > float64(s.GetWidth()) {
-		c.position.SetX(s.GetWidth())
-		c.velocity.SetX(0)
-		events = append(events, event.NewEvent("limit-max-x", c, nil))
-	}
-	if c.position.GetY() < 0 {
-		c.position.SetY(0)
-		c.velocity.SetY(0)
-		events = append(events, event.NewEvent("limit-min-y", c, nil))
-	}
-	if c.position.GetY() > float64(s.GetHeight()) {
-		c.position.SetY(s.GetHeight())
-		c.velocity.SetY(0)
-		events = append(events, event.NewEvent("limit-max-y", c, nil))
-	}
+
 	for _, action := range c.acctions {
 		switch action.GetName() {
 		case "shoot":

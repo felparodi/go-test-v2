@@ -28,7 +28,7 @@ func dummyStragey(ia IA) <-chan *Move {
 		for t := 0; t < moveTime; t++ {
 			position := ia.GetCharacter().GetPosition()
 			area := ia.GetArea()
-			x, y := size.NormalizeMove(x*5, y*5, position, area.GetSize())
+			x, y, _ := size.NormalizeMove(x*5, y*5, position, area.GetSize())
 			if rand.Intn(10) > 7 {
 				actions = append(actions, &Action{name: "shoot"})
 			}

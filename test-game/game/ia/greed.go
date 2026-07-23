@@ -45,7 +45,7 @@ func greadyStrategy(ia IA) <-chan *Move {
 			angle := angleToNearestMultipleOf45(position, coin.GetPosition())
 			x := math.Cos(angle)
 			y := math.Sin(angle)
-			x, y = size.NormalizeMove(x, y, position, area.GetSize())
+			x, y, _ = size.NormalizeMove(x, y, position, area.GetSize())
 			canal <- &Move{
 				X: x,
 				Y: y,

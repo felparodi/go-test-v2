@@ -70,9 +70,9 @@ func (a *BasicArea) update(deltaTime float64) error {
 	return nil
 }
 
-func (w *BasicArea) SearchItems(find func(inter.Item) bool) []inter.Item {
+func (a *BasicArea) SearchItems(find func(inter.Item) bool) []inter.Item {
 	ret := []inter.Item{}
-	for _, item := range w.items {
+	for _, item := range a.items {
 		if find(item) {
 			ret = append(ret, item)
 		}
@@ -91,22 +91,21 @@ func (w *BasicArea) GetState() inter.AreaState {
 			c, _ := (item).(inter.Character)
 			ret.Characters = append(ret.Characters, c)
 		case inter.Item:
-			c, _ := (item).(inter.Item)
-			ret.Items = append(ret.Items, c)
+			ret.Items = append(ret.Items, item)
 		}
 	}
 	return ret
 }
 
-func (w *BasicArea) processEvent(e inter.Event) {
+func (a *BasicArea) processEvent(e inter.Event) {
 	switch e.GetEventName() {
 	case "move-item-random-pose":
-		e.GetOwner().SetPosition(w.size.GetRandPosistion())
+		e.GetOwner().SetPosition(a.size.GetRandPosistion())
 	case "remove":
-		delete(w.items, e.GetOwner().GetId())
+		delete(a.items, e.GetOwner().GetId())
 	case "create-bullet":
 		bullet := item.NewBullet(e.GetOwner())
-		w.items[bullet.GetId()] = bullet
+		a.items[bullet.GetId()] = bullet
 	}
 	if e.GetTragets() != nil {
 		for _, t := range e.GetTragets() {
@@ -115,10 +114,10 @@ func (w *BasicArea) processEvent(e inter.Event) {
 	}
 }
 
-func (w *BasicArea) AddItem(item inter.Item) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return w.addItem(item)
+func (a *BasicArea) AddItem(item inter.Item) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.addItem(item)
 }
 
 // @TODO Tirar error si ya se uso el id?
