@@ -81,8 +81,7 @@ type Game interface {
 	RenamePlayer(string, string) error
 	GetPlayer(string) (Player, bool)
 	GetPlayers() []Player
-	Update(float64) error //@TODO temporal
-	GetState() AreaState  //@TODO temporal
+	GetState() AreaState //@TODO temporal
 }
 
 type Area interface {

@@ -126,11 +126,10 @@ func (s *Server) sendGameStateToAll() {
 
 // Bucle principal del juego optimizado
 func (s *Server) GameLoop() error {
+	s.game.Start()
+	defer s.game.Stop()
 	ticker := time.NewTicker(16 * time.Millisecond)
 	defer ticker.Stop()
-
-	physicsTicker := time.NewTicker(10 * time.Millisecond)
-	defer physicsTicker.Stop()
 
 	lastTime := time.Now()
 	accumulator := 0.0
@@ -140,10 +139,6 @@ func (s *Server) GameLoop() error {
 		select {
 		case <-s.gameLoopDone:
 			return nil
-
-		case <-physicsTicker.C:
-			s.game.Update(fixedDeltaTime)
-
 		case <-ticker.C:
 			now := time.Now()
 			deltaTime := now.Sub(lastTime).Seconds()

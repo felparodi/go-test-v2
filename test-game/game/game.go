@@ -3,7 +3,9 @@ package game
 import (
 	"juego-websocket/game/area"
 	"juego-websocket/game/inter"
+	"log"
 	"sync"
+	"time"
 )
 
 type BasicGame struct {
@@ -11,6 +13,7 @@ type BasicGame struct {
 	players       map[string]inter.Player
 	worlds        map[string]inter.Area
 	activeChannel chan bool
+	threadChannel chan bool
 }
 
 func NewGame(s inter.Server) inter.Game {
@@ -20,17 +23,40 @@ func NewGame(s inter.Server) inter.Game {
 			"0": area.NewWorldArea(s),
 		},
 		activeChannel: make(chan bool),
+		threadChannel: make(chan bool),
 	}
 }
 
 // @TODO implementar
 func (g *BasicGame) Start() (chan bool, error) {
+	go g.runThread()
 	return g.activeChannel, nil
 }
 
 // @TODO implementar
 func (g *BasicGame) Stop() error {
+	defer func() { g.activeChannel <- false }()
+	g.threadChannel <- false
 	return nil
+}
+
+func (g *BasicGame) runThread() error {
+	physicsTicker := time.NewTicker(20 * time.Millisecond)
+	defer physicsTicker.Stop()
+	const fixedDeltaTime = 1.0 / 60.0
+	lastTime := time.Now().UnixMilli()
+	for {
+		actualTimer := time.Now().UnixMilli()
+		delta := float64(int(actualTimer-lastTime)) / 600.0
+		log.Println("RT", lastTime, actualTimer, delta)
+		select {
+		case <-physicsTicker.C:
+			g.update(delta)
+		case <-g.threadChannel:
+			return nil
+		}
+		lastTime = actualTimer
+	}
 }
 
 func (g *BasicGame) AddPlayer(p inter.Player) error {
@@ -114,6 +140,6 @@ func (g *BasicGame) GetState() inter.AreaState {
 	return g.worlds["0"].GetState()
 }
 
-func (g *BasicGame) Update(delta float64) error {
+func (g *BasicGame) update(delta float64) error {
 	return g.worlds["0"].Update(delta)
 }
